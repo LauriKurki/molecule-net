@@ -14,8 +14,10 @@ dependencies = [
     "optax",
     "dm-haiku",
     "flax",
-    "clu"
+    "clu",
+    "tqdm",
+    "ase",
 ]
 
 [tool.setuptools.packages]
-find = {namespaces = false}
+find = {}
