@@ -99,7 +99,7 @@ def main(args) -> None:
                 FLAGS.output_dir,
                 f"maps_{start:06d}_{start + FLAGS.chunk_size:06d}",
             ),
-        ) for start in range(0, 100, FLAGS.chunk_size)
+        ) for start in range(0, n_mol, FLAGS.chunk_size)
     ]
 
     #tqdm.contrib.concurrent.process_map(
@@ -115,7 +115,6 @@ if __name__=='__main__':
     flags.DEFINE_string('data_dir', '/l/data/small_fragments/afm.h5', 'Path to the dataset.')
     flags.DEFINE_string('output_dir', '/l/data/molnet', 'Path to the output file.')
     flags.DEFINE_integer('chunk_size', 1000, 'Chunk size.')
-    flags.DEFINE_integer('batch_size', 10, 'Batch size.')
     flags.DEFINE_float('z_cutoff', 2.0, 'Z cutoff.')
     flags.DEFINE_float('map_resolution', 0.125, 'Map resolution.')
     flags.DEFINE_float('sigma', 0.2, 'Sigma.')
