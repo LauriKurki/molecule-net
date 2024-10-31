@@ -10,10 +10,13 @@ def get_length(h5_file: str) -> int:
     """Get the length of the EDAFM dataset."""
     length = 0
     splits = ['train', 'val', 'test']
+    split_lengths = {}
     with h5py.File(h5_file, 'r') as h5:
         for split in splits:
-            length += h5[split]['xyz'].shape[0]
-    return length
+            l = h5[split]['xyz'].shape[0]
+            length += l
+            split_lengths[split] = l
+    return length, split_lengths
 
 def load_edafm(
     h5_file: str,

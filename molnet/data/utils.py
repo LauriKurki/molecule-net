@@ -160,3 +160,15 @@ def atom_map_generator(
             xs = []
             atom_maps = []
             xyzs = []
+
+def get_split(
+    i: int,
+    split_lengths: dict
+) -> str:
+    """Get the split of the molecule."""
+    if i < split_lengths['train']:
+        return 'train'
+    elif i < split_lengths['train'] + split_lengths['val']:
+        return 'val'
+    else:
+        return 'test'
