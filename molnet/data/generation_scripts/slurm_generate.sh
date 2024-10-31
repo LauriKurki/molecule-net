@@ -7,7 +7,7 @@
 
 source /scratch/work/kurkil1/venvs/molnet/bin/activate
 
-python generate_atom_maps.py \
+python atom_map_generator.py \
     --data_dir /scratch/phys/project/sin/lauri/data/afm.h5 \
     --output_dir /scratch/phys/project/sin/lauri/data/atom_maps/ \
     --chunk_size 1000

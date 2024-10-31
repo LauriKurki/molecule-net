@@ -1,7 +1,6 @@
 import os
 
-import jax
-import jax.numpy as jnp
+import numpy as np
 import tensorflow as tf
 
 import h5py
@@ -23,13 +22,13 @@ def generate_atom_maps(
     data_dir: str,
     start: int,
     end: int,
-    atomic_numbers: jnp.ndarray,
+    atomic_numbers: np.ndarray,
     split_lengths: dict,
     z_cutoff: float,
     map_resolution: float,
     sigma: float,
     output_dir: str,
-) -> jnp.ndarray:
+) -> np.ndarray:
     """Generate atom maps for a slice in the dataset."""
 
     logging.info(f"Generating fragments {start}:{end}")
@@ -43,28 +42,25 @@ def generate_atom_maps(
 
     def generator():
         for i in tqdm.tqdm(range(start, end)):
-            with jax.default_device(jax.devices("cpu")[0]):
 
-                split = utils.get_split(i, split_lengths)
-                res = utils.get_image_and_atom_map(
-                    data_dir,
-                    i,
-                    atomic_numbers,
-                    split,
-                    z_cutoff,
-                    map_resolution,
-                    sigma,
-                )
+            split = utils.get_split(i, split_lengths)
+            x, atom_map, xyz, = utils.get_image_and_atom_map_np(
+                data_dir,
+                i,
+                atomic_numbers,
+                split,
+                z_cutoff,
+                map_resolution,
+                sigma,
+            )
+            if x is None:
+                continue
 
-                if res is None:
-                    continue
-
-                x, atom_map, xyz = res
-                yield {
-                    "images": x.astype(jnp.float16),
-                    "xyz": xyz.astype(jnp.float32),
-                    "atom_map": atom_map.astype(jnp.float16),
-                }
+            yield {
+                "images": x.astype(np.float16),
+                "xyz": xyz.astype(np.float32),
+                "atom_map": atom_map.astype(np.float16),
+            }
 
     dataset = tf.data.Dataset.from_generator(generator, output_signature=signature)
 
@@ -78,7 +74,7 @@ def _generate_atom_maps_wrapper(args):
 def main(args) -> None:
     logging.set_verbosity(logging.INFO)
 
-    atomic_numbers = jnp.array([1, 6, 7, 8, 9])
+    atomic_numbers = np.array([1, 6, 7, 8, 9])
 
     # Calculate dataset shapes
     n_mol, split_lengths = edafm.get_length(FLAGS.data_dir)
@@ -104,13 +100,12 @@ def main(args) -> None:
         ) for start in range(0, n_mol, FLAGS.chunk_size)
     ]
 
-    #tqdm.contrib.concurrent.process_map(
-    #    _generate_atom_maps_wrapper, args_list, max_workers=2
-    #)
+    tqdm.contrib.concurrent.process_map(
+        _generate_atom_maps_wrapper, args_list, max_workers=1
+    )
 
-    for args in args_list:
-        generate_atom_maps(*args)
-        break
+    #for args in args_list:
+    #    generate_atom_maps(*args)
 
 
 if __name__=='__main__':
