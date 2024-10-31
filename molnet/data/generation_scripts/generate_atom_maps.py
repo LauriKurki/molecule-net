@@ -43,26 +43,28 @@ def generate_atom_maps(
 
     def generator():
         for i in tqdm.tqdm(range(start, end)):
-            split = utils.get_split(i, split_lengths)
-            res = utils.get_image_and_atom_map(
-                data_dir,
-                i,
-                atomic_numbers,
-                split,
-                z_cutoff,
-                map_resolution,
-                sigma,
-            )
+            with jax.default_device(jax.devices("cpu")[0]):
 
-            if res is None:
-                continue
+                split = utils.get_split(i, split_lengths)
+                res = utils.get_image_and_atom_map(
+                    data_dir,
+                    i,
+                    atomic_numbers,
+                    split,
+                    z_cutoff,
+                    map_resolution,
+                    sigma,
+                )
 
-            x, atom_map, xyz = res
-            yield {
-                "images": x.astype(jnp.float16),
-                "xyz": xyz.astype(jnp.float32),
-                "atom_map": atom_map.astype(jnp.float16),
-            }
+                if res is None:
+                    continue
+
+                x, atom_map, xyz = res
+                yield {
+                    "images": x.astype(jnp.float16),
+                    "xyz": xyz.astype(jnp.float32),
+                    "atom_map": atom_map.astype(jnp.float16),
+                }
 
     dataset = tf.data.Dataset.from_generator(generator, output_signature=signature)
 
