@@ -65,7 +65,11 @@ def get_image(fname, index, split='train'):
     def _top_to_zero(xyz):
         xyz[:, 2] = xyz[:, 2] - xyz[:, 2].max()
         return xyz
-    
+
+    # if all xyzs are zero, return None (padding)
+    if np.all(xyz[:, -1] == 0):
+        return None, None, None
+
     xyz = _top_to_zero(_unpad(xyz))
 
     return x, sw, xyz
@@ -163,6 +167,9 @@ def get_image_and_atom_map_np(
     sigma=0.2,
 ):
     x, sw, xyz = get_image(fname, index, split)
+
+    if x is None:
+        return None, None, None
 
     # Check if all Zs are in 'atomic_numbers'
     zs = xyz[:, -1].astype(int)

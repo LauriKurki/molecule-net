@@ -101,7 +101,7 @@ def main(args) -> None:
     ]
 
     tqdm.contrib.concurrent.process_map(
-        _generate_atom_maps_wrapper, args_list, max_workers=1
+        _generate_atom_maps_wrapper, args_list
     )
 
     #for args in args_list:
