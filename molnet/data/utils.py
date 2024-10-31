@@ -109,6 +109,102 @@ def get_image_and_atom_map(
     return x, atom_map, xyz
 
 
+def _create_one_atom_position_map_np(
+        xyz: np.ndarray,
+        sw: np.ndarray,
+        sw_size: float = 16.0,
+        z_cutoff: float = 2.0,
+        map_resolution: float = 0.125,
+        sigma: float = 0.2,
+):
+    """
+    Creates a three dimensional map of the atom positions. Atomic positions
+    represented with Gaussian functions.
+
+    Args:
+        xyz: `jnp.ndarray` of shape (N, 5) where N is the number of atoms.
+        sw: `jnp.ndarray` of shape (2, 3). Scan window.
+        sw_size: float. The size of the scan window in Ångströms.
+        z_cutoff: float. Where to cutoff atoms.
+        map_resolution: float. The resolution of the map in Angstroms.
+        sigma: float. The standard deviation of the Gaussian function.
+
+    Returns:
+        `jnp.ndarray` of shape (map_size/map_resolution, map_size/map_resolution). The atom position map. 
+    """
+    xyz = xyz[xyz[:, 2] > xyz[:, 2].max() - z_cutoff]
+
+    x = np.linspace(sw[0,0], sw[1,0], int(sw_size / map_resolution))
+    y = np.linspace(sw[0,1], sw[1,1], int(sw_size / map_resolution))
+    z = np.arange(-z_cutoff, 1e-9, 0.1)
+    X, Y, Z = np.meshgrid(x, y, z)
+
+    if xyz.shape[0] == 0:
+        return np.zeros_like(X)
+
+    maps = np.vectorize(
+        lambda atom: np.exp(
+            -((X - atom[0]) ** 2 + (Y - atom[1]) ** 2 + (Z - atom[2]) ** 2) / (2*sigma**2)
+        ),
+        signature='(a)->(q, w, e)',
+    )(xyz)
+
+    return maps.sum(axis=0)
+
+
+
+def get_image_and_atom_map_np(
+    fname,
+    index,
+    atomic_numbers,
+    split='train',
+    z_cutoff=2.0,
+    map_resolution=0.125,
+    sigma=0.2,
+):
+    x, sw, xyz = get_image(fname, index, split)
+
+    # Check if all Zs are in 'atomic_numbers'
+    zs = xyz[:, -1].astype(int)
+    if ~np.all(np.isin(zs, atomic_numbers)):
+        return None, None, None
+
+    scan_window_size = np.ceil(sw[1,0] - sw[0,0])
+
+    def filter_by_species(sp):
+        # Create a boolean mask for rows matching the species
+        mask = xyz[:, -1] == sp
+        # Apply the mask to filter rows and select only position columns
+        filtered_positions = np.where(mask[:, None], xyz[:, :3], np.zeros_like(xyz[:, :3])-np.inf)
+        return filtered_positions
+
+    # Apply filtering and store in a 
+    xyz_by_species = np.array([filter_by_species(sp) for sp in atomic_numbers])
+
+    assert xyz_by_species.shape == (
+        len(atomic_numbers), xyz.shape[0], 3
+    ), (
+        xyz_by_species.shape,
+        len(atomic_numbers),
+        xyz.shape[0],
+        3,
+    )
+
+    atom_map = np.array([
+        _create_one_atom_position_map_np(
+            xyz,
+            sw,
+            scan_window_size,
+            z_cutoff,
+            map_resolution,
+            sigma,
+        )
+        for xyz in xyz_by_species
+    ])
+
+    return x, atom_map, xyz
+
+
 def atom_map_generator(
     fname: str,
     atomic_numbers: jnp.ndarray,
