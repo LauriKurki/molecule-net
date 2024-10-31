@@ -43,10 +43,10 @@ def generate_atom_maps(
     def generator():
         for i in tqdm.tqdm(range(start, end)):
 
-            split = utils.get_split(i, split_lengths)
+            index, split = utils.get_split_and_index(i, split_lengths)
             x, atom_map, xyz, = utils.get_image_and_atom_map_np(
                 data_dir,
-                i,
+                index,
                 atomic_numbers,
                 split,
                 z_cutoff,
