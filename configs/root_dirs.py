@@ -15,7 +15,7 @@ def get_root_dir(local_scratch=None) -> Optional[str]:
         if 'triton' in hostname:
             return None
         else:
-            return "/u/79/kurkil1/unix/work/molnet/puhtidata"
+            return "/l/data/molnet/atom_maps/"
     if username == 'kurkilau':
         return None
     return None

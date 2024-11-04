@@ -5,24 +5,13 @@ import time
 from absl.testing import absltest
 
 from molnet.data import input_pipeline
-from configs import root_dirs, default
-
-def get_config():
-    config = default.get_config()
-    #config.root_dir = root_dirs.get_root_dir()
-    config.root_dir = '/l/data/molnet/atom_maps'
-
-    config.batch_size = 16
-    config.train_molecules = (0, 1000)
-    config.val_molecules = (1000, 2000)
-    config.test_molecules = (2000, 3000)
-
-    return config
+from configs import root_dirs, test
 
 
 class TestInputPipeline(absltest.TestCase):
     def test_input_pipeline(self):
-        config = get_config()
+        config = test.get_config()
+        config.root_dir = root_dirs.get_root_dir()
 
         print(config)
 
