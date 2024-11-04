@@ -122,3 +122,24 @@ def _preprocess_images(
     batch["atom_map"] = tf.transpose(batch["atom_map"], perm=[1, 2, 3, 0])
 
     return batch
+
+
+def get_pseudodatasets(rng, config):
+    """Loads pseudodatasets for each split."""
+    datasets = {}
+    for split in ["train", "val", "test"]:
+        dataset = tf.data.Dataset.range(100)
+        dataset = dataset.repeat()
+        dataset = dataset.map(
+            lambda x: {
+                "images": tf.zeros((128, 128, 10, 1), dtype=tf.float32),
+                "xyz": tf.zeros((config.max_atoms, 5), dtype=tf.float32),
+                "atom_map": tf.zeros((128, 128, 21, 5), dtype=tf.float32),
+            },
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True,
+        )
+        dataset = dataset.batch(config.batch_size)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE).as_numpy_iterator()
+        datasets[split] = dataset
+    return datasets
