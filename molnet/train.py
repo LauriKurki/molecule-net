@@ -54,7 +54,8 @@ def device_batch(
         else:
             batch.append(b)
 
-@functools.partial(jax.pmap, axis_name="device")
+#@functools.partial(jax.pmap, axis_name="device")
+@jax.jit
 def train_step(
     state: train_state.TrainState,
     batch: Dict[str, Any],
@@ -82,36 +83,41 @@ def train_step(
     (batch_loss, (_, updates)), grad = grad_fn(state.params)
 
     # Average gradients across devices
-    grads = jax.lax.pmean(grad, axis_name="device")
-    state = state.apply_gradients(grads=grads)
+    #grads = jax.lax.pmean(grad, axis_name="device")
+    state = state.apply_gradients(grads=grad)
     state = state.replace(batch_stats=updates["batch_stats"])
 
-    batch_metrics = Metrics.gather_from_model_output(
-        axis_name="device",
+    batch_metrics = Metrics.single_from_model_output(
         loss=batch_loss,
     )
+
+    #batch_metrics = Metrics.gather_from_model_output(
+    #    axis_name="device",
+    #    loss=batch_loss,
+    #)
     return state, batch_metrics
 
 
-@functools.partial(jax.pmap, axis_name="device")
+#@functools.partial(jax.pmap, axis_name="device")
+@jax.jit
 def eval_step(
     state: train_state.TrainState,
     batch: Dict[str, Any],
 ):
     """Evaluation step."""
-    logging.info(f"images: {batch['images'].shape}, atom_map: {batch['atom_map'].shape}")
     preds = state.apply_fn(
         {'params': state.params, 'batch_stats': state.batch_stats},
         batch["images"],
         training=False
     )
     preds_z = preds.shape[-2]
-    logging.info(f"preds: {preds.shape}, atom_map: {batch['atom_map'][..., -preds_z:, :].shape}")
     batch_loss = loss.mse(
         preds,
         batch["atom_map"][..., -preds_z:, :]
     )
-
+    return Metrics.single_from_model_output(
+        loss=batch_loss,        
+    )
     return Metrics.gather_from_model_output(
         axis_name="device",
         loss=batch_loss,
@@ -127,20 +133,19 @@ def evaluate_model(
 
     eval_metrics = {}
     for split, data_iterator in datasets.items():
-        split_metrics = flax.jax_utils.replicate(Metrics.empty())
+        split_metrics = Metrics.empty()
+        #split_metrics = flax.jax_utils.replicate(split_metrics)
 
         # Loop over graphs.
         for step in range(num_eval_steps):
-            batch = next(device_batch(data_iterator))
-            #graphs = jax.tree_util.tree_map(jnp.asarray, graphs)
-            print("batch", {batch["images"].shape})
-            print(split_metrics)
+            #batch = next(device_batch(data_iterator))
+            batch = next(data_iterator)
            
             # Compute metrics for this batch.
             batch_metrics = eval_step(state, batch)
             split_metrics = split_metrics.merge(batch_metrics)
 
-        split_metrics = flax.jax_utils.unreplicate(split_metrics)
+        #split_metrics = flax.jax_utils.unreplicate(split_metrics)
         eval_metrics[split + "_eval"] = split_metrics
 
     return eval_metrics            
@@ -164,7 +169,8 @@ def train(
     logging.info("Loading datasets.")
     rng = jax.random.PRNGKey(config.rng_seed)
     rng, data_rng = jax.random.split(rng)
-    datasets = input_pipeline.get_datasets(data_rng, config)
+    #datasets = input_pipeline.get_datasets(data_rng, config)
+    datasets = input_pipeline.get_pseudodatasets(data_rng, config)
     train_ds = datasets["train"]
 
     # Create model
@@ -189,7 +195,7 @@ def train(
         best_params=params,
         step_for_best_params=0,
         metrics_for_best_params={},
-        train_metrics=flax.jax_utils.replicate(Metrics.empty()),
+        train_metrics=Metrics.empty(),
     )
 
     # Set up checkpointing
@@ -201,7 +207,7 @@ def train(
     initial_step = state.get_step()
 
     # Replicate states across devices
-    state = flax.jax_utils.replicate(state)
+    #state = flax.jax_utils.replicate(state)
 
     # Hooks called periodically during training.
     report_progress = periodic_actions.ReportProgress(
@@ -241,8 +247,8 @@ def train(
 
         try:
             t0 = time.perf_counter()
-            batch = next(device_batch(train_ds))
-            #batch = jax.tree_util.tree_map(jnp.asarray, batch)
+            batch = next(train_ds)
+            #batch = next(device_batch(train_ds))
             logging.log_first_n(
                 logging.INFO,
                 f"Loaded batch in %0.2f ms.",
@@ -258,15 +264,13 @@ def train(
             t0 = time.perf_counter()
 
             rng, step_rng = jax.random.split(rng)
-            step_rngs = jax.random.split(step_rng, jax.local_device_count())
+            #step_rngs = jax.random.split(step_rng, jax.local_device_count())
 
             state, batch_metrics = train_step(
                 state,
                 batch,
-                step_rngs,
+                step_rng,
             )
-            print(batch_metrics)
-            print(state.train_metrics)
             state = state.replace(
                 train_metrics=state.train_metrics.merge(batch_metrics)
             )
@@ -279,6 +283,6 @@ def train(
             (time.perf_counter() - t0) * 1000,
         )
         report_progress(step)
-        profiler(step)
+        #profiler(step)
 
     return state

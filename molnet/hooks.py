@@ -44,7 +44,7 @@ class CheckpointHook:
     ):
 
         # Unreplicate from all devices
-        state = flax.jax_utils.unreplicate(state)
+        #state = flax.jax_utils.unreplicate(state)
 
         # Save the state
         with open(
@@ -81,8 +81,8 @@ class LogTrainMetricsHook:
         state: train_state.TrainState
     ):
         # Unreplicate from all devices
-        #train_metrics = state.train_metrics
-        train_metrics = flax.jax_utils.unreplicate(state.train_metrics)
+        train_metrics = state.train_metrics
+        #train_metrics = flax.jax_utils.unreplicate(state.train_metrics)
 
         if not self.is_empty:
             # Log the metrics
@@ -92,7 +92,8 @@ class LogTrainMetricsHook:
                 scalars=add_prefix_to_keys(train_metrics, "train")
             )
             state = state.replace(
-                train_metrics=flax.jax_utils.replicate(train.Metrics.empty())
+                train_metrics=train.Metrics.empty()
+                #train_metrics=flax.jax_utils.replicate(train.Metrics.empty())
             )
             self.is_empty = True
 
@@ -135,16 +136,11 @@ class EvaluateModelHook:
             logging.info("No best state found yet.")
             min_val_loss = float("inf")
 
-        print("min_val_loss", min_val_loss)
-        print("eval_metrics", eval_metrics["val_eval"]["loss"])
-        print(jnp.all(eval_metrics["val_eval"]["loss"] < min_val_loss))
-
         if jnp.all(eval_metrics["val_eval"]["loss"] < min_val_loss):
-        #if True:
             state = state.replace(
                 best_params=state.params,
-                #metrics_for_best_params=eval_metrics,
-                metrics_for_best_params=flax.jax_utils.replicate(eval_metrics),
+                metrics_for_best_params=eval_metrics,
+                #metrics_for_best_params=flax.jax_utils.replicate(eval_metrics),
                 step_for_best_params=state.step,
             )
             logging.info("New best state found at step %d.", state.get_step())
