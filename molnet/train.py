@@ -252,8 +252,9 @@ def train_and_evaluate(
         if step % config.log_every_steps == 0:
             train_metrics = log_hook(train_metrics, step)
 
-        profiler(step)
+        #profiler(step)
         report_progress(step)
 
         
     return state
+

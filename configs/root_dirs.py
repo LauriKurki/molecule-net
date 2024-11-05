@@ -11,11 +11,10 @@ def get_root_dir(local_scratch=None) -> Optional[str]:
     if local_scratch is not None:
         return local_scratch
 
-    if username == "kurkil1":
-        if 'triton' in hostname:
-            return None
-        else:
-            return "/l/data/molnet/atom_maps/"
-    if username == 'kurkilau':
+    if 'triton' in hostname:
         return None
+    elif 'd22' in hostname:
+        return "/l/data/molnet/atom_maps/"
+    else:
+        return '/scratch/project_2005247/lauri/data/atom_maps'
     return None

@@ -11,8 +11,8 @@ def get_config() -> ml_collections.ConfigDict:
     config.rng_seed = 0
     config.noise_std = 0.1
     config.max_atoms = 54
-    config.train_molecules = (0, 10000)
-    config.val_molecules = (10000, 12000)
+    config.train_molecules = (0, 230000)
+    config.val_molecules = (230000, 264000)
     config.shuffle_datasets = True
     config.batch_size = 32
 
