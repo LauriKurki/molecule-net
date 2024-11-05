@@ -7,10 +7,13 @@ def get_config() -> ml_collections.ConfigDict:
     config = default.get_config()
     config.debug = True
 
-    config.num_train_steps = 100
+    config.num_train_steps = 50
     config.num_eval_steps = 10
     config.log_every_steps = 10
-    config.eval_every_steps = 50
+    config.eval_every_steps = 25
+    config.predict_every_steps = 50
+    config.predict_num_batches = 1
+    config.predict_num_batches_at_end_of_training = 1
     
     config.batch_size = 4
     config.train_molecules = (0, 2000)

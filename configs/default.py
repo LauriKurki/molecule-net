@@ -22,6 +22,10 @@ def get_config() -> ml_collections.ConfigDict:
     config.log_every_steps = 100
     config.eval_every_steps = 10_000
 
+    config.predict_every_steps = 10_000
+    config.predict_num_batches = 2
+    config.predict_num_batches_at_end_of_training = 10
+
     # Optimizer.
     config.optimizer = "adamw"
     config.momentum = None

@@ -137,7 +137,52 @@ def evaluate_model(
 
         eval_metrics[split + "_eval"] = split_metrics
 
-    return eval_metrics            
+    return eval_metrics
+
+
+@jax.jit
+def predict_step(state, batch):
+    inputs, targets = batch['images'], batch['atom_map']
+    preds = state.apply_fn(
+        {'params': state.params, 'batch_stats': state.batch_stats},
+        inputs,
+        training=False,
+    )
+    preds_z = preds.shape[-2]
+    target = targets[..., -preds_z:, :]
+    loss_by_image = jnp.mean(
+        (preds - target) ** 2,
+        axis=(1, 2, 3, 4),
+    )
+    return inputs, target, preds, loss_by_image
+
+def predict_with_state(state, dataset, num_batches):
+    losses = []
+    preds = []
+    inputs = []
+    targets = []
+    
+    for i in range(num_batches):
+        batch = next(dataset)
+
+        (
+            batch_inputs, batch_targets, batch_preds, batch_loss
+        ) = predict_step(
+            state,
+            batch
+        )
+
+        inputs.append(batch_inputs)
+        targets.append(batch_targets)
+        preds.append(batch_preds)
+        losses.append(batch_loss)
+
+    inputs = jnp.concatenate(inputs)
+    targets = jnp.concatenate(targets)
+    preds = jnp.concatenate(preds)
+    losses = jnp.concatenate(losses)
+
+    return inputs, targets, preds, losses
 
 
 def train_and_evaluate(
@@ -210,6 +255,17 @@ def train_and_evaluate(
         writer=writer,
     )
 
+    # Prediction
+    prediction_hook = hooks.PredictionHook(
+        workdir=workdir,
+        predict_fn=lambda state, num_batches: predict_with_state(
+            state,
+            datasets["val"],
+            num_batches,
+        ),
+        writer=writer,
+    )
+
     profiler = periodic_actions.Profile(
         logdir=os.path.join(workdir, "profile"),
         every_secs=10800        
@@ -224,8 +280,17 @@ def train_and_evaluate(
     for step in range(initial_step, config.num_train_steps+1):
 
         if step % config.eval_every_steps == 0:
+            logging.info("Evaluating model.")
             state = evaluate_model_hook(state)
             checkpoint_hook(state)
+
+        if step % config.predict_every_steps == 0:
+            logging.info(f"Predicting with current state at step {step}.")
+            prediction_hook(
+                state,
+                num_batches=config.predict_num_batches,
+                final=False
+            )
 
         try:
             t0 = time.perf_counter()
@@ -255,6 +320,13 @@ def train_and_evaluate(
         #profiler(step)
         report_progress(step)
 
+    # Do final predictions
+    logging.info("Predicting with final state after training.")
+    prediction_hook(
+        state,
+        num_batches=config.predict_num_batches_at_end_of_training,
+        final=True
+    )
         
     return state
 

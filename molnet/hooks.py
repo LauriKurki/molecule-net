@@ -12,7 +12,9 @@ from dataclasses import dataclass
 from clu import metric_writers, checkpoint, metrics
 import flax.jax_utils
 
-from molnet import train_state, train
+from molnet import train_state
+from molnet import train
+from molnet import graphics
 
 @dataclass
 class CheckpointHook:
@@ -139,3 +141,79 @@ class EvaluationHook:
             logging.info("New best state found at step %d.", state.get_step())
 
         return state
+    
+
+@dataclass
+class PredictionHook:
+    workdir: str
+    predict_fn: Callable
+    writer: metric_writers.SummaryWriter
+
+    def __call__(
+        self,
+        state: train_state.TrainState,
+        num_batches: int,
+        final: bool
+    ):
+
+        # Create the output directory
+        output_dir = os.path.join(
+            self.workdir,
+            "predictions",
+            f"final_step_{state.get_step()}" if final else f"step_{state.get_step()}"
+        )  
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Predict on the test set
+        (
+            inputs, targets, preds, losses
+        ) = self.predict_fn(
+            state,
+            num_batches
+        )
+
+        assert (
+            inputs.shape[:-1] == preds.shape[:-1] == targets.shape[:-1]
+        ), (
+            inputs.shape,
+            preds.shape,
+            targets.shape,
+        ) # [num_samples, nX, nY, nZ, num_species]
+
+        # Write detailed predictions
+        graphics.save_predictions(
+            inputs, targets, preds, losses, output_dir
+        )
+
+        # Write predictions in simplified format (sum over heights and species)
+        inputs_summed = inputs.sum(axis=(3, 4))[..., None]
+        preds_summed = preds.sum(axis=(3, 4))[..., None]
+        targets_summed = targets.sum(axis=(3, 4))[..., None]
+
+        # scale everything to [0, 1] after shifting to positive values
+        inputs_summed = inputs_summed - inputs_summed.min()
+        preds_summed = preds_summed - preds_summed.min()
+        targets_summed = targets_summed - targets_summed.min()
+
+        inputs_summed = inputs_summed / inputs_summed.max()
+        preds_summed = preds_summed / preds_summed.max()
+        targets_summed = targets_summed / targets_summed.max()
+
+        assert inputs_summed.ndim == 4, inputs_summed.shape
+        assert preds_summed.ndim == 4, preds_summed.shape
+        assert targets_summed.ndim == 4, targets_summed.shape
+
+        # Disable writing of images for now
+
+        #self.writer.write_images(
+        #    state.get_step(),
+        #    {
+        #        "inputs": inputs_summed,
+        #        "targets": targets_summed,
+        #        "preds": preds_summed,
+        #    },
+        #)
+
+        graphics.save_simple_predictions(
+            inputs_summed, targets_summed, preds_summed, output_dir
+        )
