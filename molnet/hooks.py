@@ -152,13 +152,15 @@ class PredictionHook:
     def __call__(
         self,
         state: train_state.TrainState,
+        num_batches: int,
+        final: bool
     ):
 
-        # Create the output directory        
+        # Create the output directory
         output_dir = os.path.join(
             self.workdir,
             "predictions",
-            f"step_{state.get_step()}"
+            f"final_step_{state.get_step()}" if final else f"step_{state.get_step()}"
         )  
         os.makedirs(output_dir, exist_ok=True)
 
@@ -167,6 +169,7 @@ class PredictionHook:
             inputs, targets, preds, losses
         ) = self.predict_fn(
             state,
+            num_batches
         )
 
         assert (

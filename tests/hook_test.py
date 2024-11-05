@@ -89,16 +89,16 @@ class HookTest(absltest.TestCase):
         writer = metric_writers.SummaryWriter(self.workdir)
         self.hook = hooks.PredictionHook(
             workdir=workdir,
-            predict_fn=lambda state: predict_with_state(
+            predict_fn=lambda state, num_batches: predict_with_state(
                 state,
                 datasets['val'],
-                2
+                num_batches,
             ),
-            writer=writer
+            writer=writer,
         )
 
     def test_prediction_hook(self):
-        self.hook(self.state)
+        self.hook(self.state, 1, False)
         self.assertTrue(os.path.exists(self.workdir))
 
 
