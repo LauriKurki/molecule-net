@@ -4,13 +4,14 @@ import time
 
 from absl.testing import absltest
 
+from configs.tests import unet_test
 from molnet.data import input_pipeline
-from configs import root_dirs, test
+from configs import root_dirs
 
 
 class TestInputPipeline(absltest.TestCase):
     def test_input_pipeline(self):
-        config = test.get_config()
+        config = unet_test.get_config()
         config.root_dir = root_dirs.get_root_dir()
 
         print(config)
