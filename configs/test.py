@@ -19,7 +19,10 @@ def get_config() -> ml_collections.ConfigDict:
     config.train_molecules = (0, 2000)
     config.val_molecules = (2000, 3000)
 
-    config.filters = [2, 4, 8]
-    config.kernel_size = [3, 3, 3]
+    config.model = ml_collections.ConfigDict()
+    config.model.model_name = "unet"
+    config.model.output_channels = 5
+    config.model.filters = [2, 4, 8]
+    config.model.kernel_size = [3, 3, 3]
 
     return config

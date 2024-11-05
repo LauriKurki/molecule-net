@@ -210,7 +210,7 @@ def train_and_evaluate(
     logging.info("Creating model.")
     x_init = next(train_ds)['images']
     rng, init_rng = jax.random.split(rng)
-    model = create_model(config)
+    model = create_model(config.model)
     
     variables = model.init(init_rng, x_init, training=True)
     params = variables["params"]

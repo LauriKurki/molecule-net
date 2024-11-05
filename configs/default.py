@@ -39,9 +39,4 @@ def get_config() -> ml_collections.ConfigDict:
     config.learning_rate_schedule_kwargs.warmup_steps = 2000
     config.learning_rate_schedule_kwargs.decay_steps = 50000
 
-    # Model
-    config.output_channels = 5
-    config.filters = [16, 32, 64]
-    config.kernel_size = [3, 3, 3]
-
     return config
