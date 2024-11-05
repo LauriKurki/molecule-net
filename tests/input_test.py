@@ -27,9 +27,9 @@ class TestInputPipeline(absltest.TestCase):
             batch = next(trainset)
             image = batch["images"]
             atom_map = batch["atom_map"]
-            xyz = batch["xyz"]
+            #xyz = batch["xyz"]
 
-            print(f"Batch {i}: {image.shape}, {atom_map.shape}, {xyz.shape}")
+            print(f"Batch {i}: {image.shape}, {atom_map.shape}")
             print(f"Time taken: {(time.perf_counter() - t0)*1000:.2f} ms")
 
 

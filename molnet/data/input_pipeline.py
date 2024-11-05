@@ -129,7 +129,7 @@ def _preprocess_images(
 def get_pseudodatasets(rng, config):
     """Loads pseudodatasets for each split."""
     datasets = {}
-    for split in ["train", "val", "test"]:
+    for split in ["train", "val"]:
         dataset = tf.data.Dataset.range(100)
         dataset = dataset.repeat()
         dataset = dataset.map(

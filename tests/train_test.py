@@ -33,7 +33,7 @@ class TrainTest(absltest.TestCase):
       workdir = tempfile.mkdtemp()
 
       # Run the training
-      train.train(config, workdir)
+      train.train_and_evaluate(config, workdir)
 
 
 if __name__ == "__main__":

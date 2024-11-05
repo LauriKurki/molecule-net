@@ -142,7 +142,7 @@ def evaluate_model(
     return eval_metrics            
 
 
-def train(
+def train_and_evaluate(
     config: ml_collections.ConfigDict,
     workdir: str
 ) -> None:
@@ -185,29 +185,75 @@ def train(
         best_params=params,
         step_for_best_params=0,
         metrics_for_best_params={},
-        train_metrics=Metrics.empty(),
     )
-    print(state.train_metrics)
     
     # Create hooks
     logging.info("Creating hooks.")
+    
+    # Logging
     log_hook = hooks.LogTrainingMetricsHook(writer)
+    train_metrics = Metrics.empty()
+
+    # Checkpointing
+    checkpoint_path = os.path.join(workdir, "checkpoints")
+    checkpoint_hook = hooks.CheckpointHook(checkpoint_path, max_to_keep=1)
+    state = checkpoint_hook.restore_or_init(state)
+    initial_step = state.get_step()
+
+    # Evaluation
+    evaluate_model_hook = hooks.EvaluationHook(
+        evaluate_model_fn=lambda state: evaluate_model(
+            state,
+            datasets,
+            config.num_eval_steps,
+        ),
+        writer=writer,
+    )
+
+    profiler = periodic_actions.Profile(
+        logdir=os.path.join(workdir, "profile"),
+        every_secs=10800        
+    )
+    report_progress = periodic_actions.ReportProgress(
+        num_train_steps=config.num_train_steps,
+        writer=writer,
+    )
 
     # Training loop
-    logging.info("Starting training loop.")
+    logging.info(f"Starting training loop at step {initial_step} out of {config.num_train_steps}.")
+    for step in range(initial_step, config.num_train_steps+1):
 
-    for step in range(config.num_train_steps):
+        if step % config.eval_every_steps == 0:
+            state = evaluate_model_hook(state)
+            checkpoint_hook(state)
 
-        #if step % config.log_every_steps == 0:
-        #    log_hook(state)
+        try:
+            t0 = time.perf_counter()
+            batch = next(train_ds)
+            logging.log_first_n(
+                logging.INFO,
+                f"Time to load batch: {(time.perf_counter() - t0)*1e3:.2f} ms",
+                10,
+            )
+        except StopIteration:
+            logging.info("No more data, exiting training loop.")
+            break
 
-        batch = next(train_ds)
-        state, batch_metrics = train_step(state, batch)
-        print(batch_metrics)
-        
-        state = state.replace(
-            train_metrics=state.train_metrics.merge(batch_metrics)
+        with jax.profiler.StepTraceAnnotation("train_step", step_num=step):
+            state, batch_metrics = train_step(state, batch)
+            train_metrics = train_metrics.merge(batch_metrics)
+
+        logging.log_first_n(
+            logging.INFO,
+            f"Train step complete: {(time.perf_counter() - t0)*1e3:.2f} ms",
+            10,
         )
-        #log_hook.is_empty = False
 
+        if step % config.log_every_steps == 0:
+            train_metrics = log_hook(train_metrics, step)
+
+        profiler(step)
+        report_progress(step)
+
+        
     return state
