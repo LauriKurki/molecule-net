@@ -10,6 +10,7 @@ from molnet import train
 from configs import root_dirs, test
 
 from absl.testing import absltest
+from absl import logging
 
 class TrainTest(absltest.TestCase):
 
@@ -19,7 +20,7 @@ class TrainTest(absltest.TestCase):
       # it unavailable to JAX.
       tf.config.experimental.set_visible_devices([], 'GPU')
 
-      print("Running test on devices: ", jax.devices())
+      logging.info("Running test on devices: ", jax.devices())
 
       # Enable NaN and Inf checking
       jax.config.update("jax_debug_nans", True)
