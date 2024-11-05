@@ -20,7 +20,7 @@ class TrainTest(absltest.TestCase):
       # it unavailable to JAX.
       tf.config.experimental.set_visible_devices([], 'GPU')
 
-      logging.info("Running test on devices: ", jax.devices())
+      logging.info(f"Running test on devices: {jax.devices()}")
 
       # Enable NaN and Inf checking
       jax.config.update("jax_debug_nans", True)

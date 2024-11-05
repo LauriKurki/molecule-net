@@ -2,11 +2,14 @@ import jax
 import jax.numpy as jnp
 import flax.linen as nn
 
+from typing import Tuple
+
 class ResBlock(nn.Module):
     """Residual block with two convolutional layers and a skip connection."""
 
     filters: int
-    kernel_size: int = 3
+    kernel_size: Tuple[int, int, int] = (3, 3, 3)
+    strides: Tuple[int, int, int] = (1, 1, 1)
 
     @nn.compact
     def __call__(
@@ -15,10 +18,18 @@ class ResBlock(nn.Module):
         training: bool
     ):
         residual = x
-        x = nn.Conv(features=self.filters, kernel_size=self.kernel_size)(x)
+        x = nn.Conv(
+            features=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+        )(x)
         x = nn.BatchNorm(use_running_average=not training)(x)
         x = nn.relu(x)
-        x = nn.Conv(features=self.filters, kernel_size=self.kernel_size)(x)
+        x = nn.Conv(
+            features=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+        )(x)
         x = nn.BatchNorm(use_running_average=not training)(x)
 
         # Projection 

@@ -22,7 +22,7 @@ class UNet(nn.Module):
         skips = []
         for i, (f, k) in enumerate(zip(self.filters, self.kernel_size)):
             x = ResBlock(
-                f, k, name=f"encoder_{i}"
+                f, (k, k, k), name=f"encoder_{i}"
             )(x, training)
             skips.append(x)
 
@@ -30,7 +30,9 @@ class UNet(nn.Module):
 
         # Bottom path
         x = ResBlock(
-            self.filters[-1], self.kernel_size[-1], name="bottom"
+            self.filters[-1],
+            (self.kernel_size[-1],)*3,
+            name="bottom"
         )(x, training)
 
         # Upward path
@@ -45,7 +47,7 @@ class UNet(nn.Module):
             x = jnp.concatenate([x, skip_x], axis=-1)
             
             x = ResBlock(
-                f, k, name=f"decoder_{i}"
+                f, (k, k, k), name=f"decoder_{i}"
             )(x, training)
 
 
@@ -58,7 +60,9 @@ class UNet(nn.Module):
 
         # Resblock before output
         x = ResBlock(
-            self.filters[0], self.kernel_size[0], name="final"
+            self.filters[0],
+            (self.kernel_size[0],)*3,
+            name="final"
         )(x, training)
 
         # Output
@@ -70,3 +74,7 @@ class UNet(nn.Module):
         )(x)
 
         return x
+
+
+class AttentionUNet(nn.Module):
+    pass
