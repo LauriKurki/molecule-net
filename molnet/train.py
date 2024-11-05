@@ -125,7 +125,6 @@ def evaluate_model(
     eval_metrics = {}
     for split, data_iterator in datasets.items():
         split_metrics = Metrics.empty()
-        #split_metrics = flax.jax_utils.replicate(split_metrics)
 
         # Loop over graphs.
         for step in range(num_eval_steps):
@@ -136,7 +135,6 @@ def evaluate_model(
             batch_metrics = eval_step(state, batch)
             split_metrics = split_metrics.merge(batch_metrics)
 
-        #split_metrics = flax.jax_utils.unreplicate(split_metrics)
         eval_metrics[split + "_eval"] = split_metrics
 
     return eval_metrics            
@@ -172,6 +170,8 @@ def train_and_evaluate(
     variables = model.init(init_rng, x_init, training=True)
     params = variables["params"]
     batch_stats = variables["batch_stats"]
+
+    parameter_overview.log_parameter_overview(params)
 
     # Create optimizer
     tx = utils.create_optimizer(config)

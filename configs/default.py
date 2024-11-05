@@ -4,6 +4,7 @@ def get_config() -> ml_collections.ConfigDict:
     """Get the default configuration."""
     config = ml_collections.ConfigDict()
     config.debug = False
+    config.root_dir = None
 
     # Dataset
     config.dataset = "edafm"
