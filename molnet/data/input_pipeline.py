@@ -3,12 +3,15 @@ import re
 
 from absl import logging
 
+import jax
+import flax
 import tensorflow as tf
 
 import chex
 import ml_collections
 
 from typing import Dict, List, Sequence
+
 
 def get_datasets(
     rng: chex.PRNGKey,
@@ -41,7 +44,6 @@ def get_datasets(
     files_by_split = {
         "train": filter_by_molecule_number(filenames, *config.train_molecules),
         "val": filter_by_molecule_number(filenames, *config.val_molecules),
-        "test": filter_by_molecule_number(filenames, *config.test_molecules),
     }
 
     element_spec = tf.data.Dataset.load(filenames[0]).element_spec
@@ -67,7 +69,7 @@ def get_datasets(
         dataset_split = dataset_split.map(
             lambda x: {
                 "images": x["images"],
-                "xyz": tf.pad(x["xyz"], [[0, config.max_atoms - tf.shape(x["xyz"])[0]], [0, 0]]),
+                #"xyz": tf.pad(x["xyz"], [[0, config.max_atoms - tf.shape(x["xyz"])[0]], [0, 0]]),
                 "atom_map": x["atom_map"],
             },
             num_parallel_calls=tf.data.AUTOTUNE,

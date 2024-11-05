@@ -72,77 +72,27 @@ def add_prefix_to_keys(result: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 
 
 @dataclass
-class LogTrainMetricsHook:
+class LogTrainingMetricsHook:
     writer: metric_writers.SummaryWriter
     is_empty: bool = True
+    prefix: str = "train"
 
     def __call__(
         self,
         state: train_state.TrainState
     ):
-        # Unreplicate from all devices
-        train_metrics = state.train_metrics
-        #train_metrics = flax.jax_utils.unreplicate(state.train_metrics)
-
+        
         if not self.is_empty:
-            # Log the metrics
-            train_metrics = train_metrics.compute()
+            train_metrics = state.train_metrics.compute()
+
             self.writer.write_scalars(
-                step=state.get_step(),
-                scalars=add_prefix_to_keys(train_metrics, "train")
+                state.get_step(),
+                add_prefix_to_keys(train_metrics, self.prefix),
             )
-            state = state.replace(
-                train_metrics=train.Metrics.empty()
-                #train_metrics=flax.jax_utils.replicate(train.Metrics.empty())
-            )
+
+            state = state.replace(train_metrics=train.Metrics.empty())
             self.is_empty = True
 
         self.writer.flush()
-
-        return state
-
-@dataclass
-class EvaluateModelHook:
-    evaluate_model_fn: Callable
-    writer: metric_writers.SummaryWriter
-    update_state_with_eval_metrics: bool = True
-
-    def __call__(
-        self,
-        state: train_state.TrainState,
-    ) -> train_state.TrainState:
-        # Evaluate the model.
-        eval_metrics = self.evaluate_model_fn(
-            state,
-        )
-
-        # Compute and write metrics.
-        for split in eval_metrics:
-            eval_metrics[split] = eval_metrics[split].compute()
-            self.writer.write_scalars(
-                state.get_step(), add_prefix_to_keys(eval_metrics[split], split)
-            )
-
-        self.writer.flush()
-
-        if not self.update_state_with_eval_metrics:
-            return state
-
-        # Note best state seen so far.
-        # Best state is defined as the state with the lowest validation loss.
-        try:
-            min_val_loss = state.metrics_for_best_params["val_eval"]["loss"]
-        except (AttributeError, KeyError):
-            logging.info("No best state found yet.")
-            min_val_loss = float("inf")
-
-        if jnp.all(eval_metrics["val_eval"]["loss"] < min_val_loss):
-            state = state.replace(
-                best_params=state.params,
-                metrics_for_best_params=eval_metrics,
-                #metrics_for_best_params=flax.jax_utils.replicate(eval_metrics),
-                step_for_best_params=state.step,
-            )
-            logging.info("New best state found at step %d.", state.get_step())
 
         return state

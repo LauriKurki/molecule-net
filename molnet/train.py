@@ -59,7 +59,6 @@ def device_batch(
 def train_step(
     state: train_state.TrainState,
     batch: Dict[str, Any],
-    rng: chex.PRNGKey,
 ) -> Tuple[train_state.TrainState, metrics.Collection]:
     """Train step."""
 
@@ -70,32 +69,28 @@ def train_step(
             training=True,
             mutable='batch_stats',
         )
-        preds_z = preds.shape[-2]
+        z_slices = preds.shape[-2]
         batch_loss = loss.mse(
             preds,
-            batch["atom_map"][..., -preds_z:, :]
+            batch["atom_map"][..., -z_slices:, :]
         )
 
         return batch_loss, (preds, updates)
 
     # Compute loss and gradients
     grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-    (batch_loss, (_, updates)), grad = grad_fn(state.params)
-
-    # Average gradients across devices
-    #grads = jax.lax.pmean(grad, axis_name="device")
-    state = state.apply_gradients(grads=grad)
-    state = state.replace(batch_stats=updates["batch_stats"])
+    (batch_loss, (_, updates)), grads = grad_fn(state.params)
 
     batch_metrics = Metrics.single_from_model_output(
         loss=batch_loss,
     )
 
-    #batch_metrics = Metrics.gather_from_model_output(
-    #    axis_name="device",
-    #    loss=batch_loss,
-    #)
-    return state, batch_metrics
+    # Update parameters
+    new_state = state.apply_gradients(
+        grads=grads,
+        batch_stats=updates["batch_stats"],)
+
+    return new_state, batch_metrics
 
 
 #@functools.partial(jax.pmap, axis_name="device")
@@ -117,10 +112,6 @@ def eval_step(
     )
     return Metrics.single_from_model_output(
         loss=batch_loss,        
-    )
-    return Metrics.gather_from_model_output(
-        axis_name="device",
-        loss=batch_loss,
     )
 
 
@@ -169,8 +160,7 @@ def train(
     logging.info("Loading datasets.")
     rng = jax.random.PRNGKey(config.rng_seed)
     rng, data_rng = jax.random.split(rng)
-    #datasets = input_pipeline.get_datasets(data_rng, config)
-    datasets = input_pipeline.get_pseudodatasets(data_rng, config)
+    datasets = input_pipeline.get_datasets(data_rng, config)
     train_ds = datasets["train"]
 
     # Create model
@@ -197,92 +187,27 @@ def train(
         metrics_for_best_params={},
         train_metrics=Metrics.empty(),
     )
+    print(state.train_metrics)
+    
+    # Create hooks
+    logging.info("Creating hooks.")
+    log_hook = hooks.LogTrainingMetricsHook(writer)
 
-    # Set up checkpointing
-    checkpoint_path = os.path.join(workdir, "checkpoint")
-    checkpoint_hook = hooks.CheckpointHook(
-        checkpoint_path, max_keep=1
-    )
-    state = checkpoint_hook.restore_or_init(state)
-    initial_step = state.get_step()
+    # Training loop
+    logging.info("Starting training loop.")
 
-    # Replicate states across devices
-    #state = flax.jax_utils.replicate(state)
+    for step in range(config.num_train_steps):
 
-    # Hooks called periodically during training.
-    report_progress = periodic_actions.ReportProgress(
-        num_train_steps=config.num_train_steps, writer=writer
-    )
-    profiler = periodic_actions.Profile(
-        logdir=workdir,
-        every_secs=10800,
-    )
-    train_metrics_hook = hooks.LogTrainMetricsHook(
-        writer,
-    )
-    evaluate_model_hook = hooks.EvaluateModelHook(
-        evaluate_model_fn=lambda state: evaluate_model(
-            state,
-            datasets,
-            config.num_eval_steps,
-        ),
-        writer=writer,
-    )
+        #if step % config.log_every_steps == 0:
+        #    log_hook(state)
 
-    # Run training loop
-    logging.info(f"Starting training loop at step {initial_step} / {config.num_train_steps}.")
-
-    for step in range(initial_step, config.num_train_steps + 1):
-        first_or_last_step = step in [0, config.num_train_steps]
-
-        # Log
-        if step % config.log_every_steps == 0 or first_or_last_step:
-            state = train_metrics_hook(state)
-
-        # Evaluate
-        if step % config.eval_every_steps == 0 or first_or_last_step:
-            logging.info("Evaluating model.")
-            state = evaluate_model_hook(state)
-            checkpoint_hook(state)
-
-        try:
-            t0 = time.perf_counter()
-            batch = next(train_ds)
-            #batch = next(device_batch(train_ds))
-            logging.log_first_n(
-                logging.INFO,
-                f"Loaded batch in %0.2f ms.",
-                20,
-                (time.perf_counter() - t0) * 1000,
-            )
-
-        except StopIteration:
-            logging.info("End of dataset.")
-            break
-
-        with jax.profiler.StepTraceAnnotation("train_step", step_num=step):
-            t0 = time.perf_counter()
-
-            rng, step_rng = jax.random.split(rng)
-            #step_rngs = jax.random.split(step_rng, jax.local_device_count())
-
-            state, batch_metrics = train_step(
-                state,
-                batch,
-                step_rng,
-            )
-            state = state.replace(
-                train_metrics=state.train_metrics.merge(batch_metrics)
-            )
-            train_metrics_hook.is_empty = False
-
-        logging.log_first_n(
-            logging.INFO,
-            "train_step took %0.2f ms.",
-            20,
-            (time.perf_counter() - t0) * 1000,
+        batch = next(train_ds)
+        state, batch_metrics = train_step(state, batch)
+        print(batch_metrics)
+        
+        state = state.replace(
+            train_metrics=state.train_metrics.merge(batch_metrics)
         )
-        report_progress(step)
-        #profiler(step)
+        #log_hook.is_empty = False
 
     return state
