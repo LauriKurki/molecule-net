@@ -12,7 +12,7 @@ from molnet.models import create_model
 from molnet.data import input_pipeline
 from molnet import train_state, loss, hooks
 
-from configs import test
+from configs.tests import unet_test
 
 
 @jax.jit
@@ -56,7 +56,7 @@ def predict_with_state(state, dataset, num_batches=1):
 
 
 def get_config():
-    config = test.get_config()
+    config = unet_test.get_config()
     config.root_dir = '/l/data/molnet/atom_maps/'
     return config
 

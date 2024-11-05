@@ -19,8 +19,10 @@ def create_model(
     elif config.model_name.lower() == "attention-unet":
         model = AttentionUNet(
             output_channels=config.output_channels,
-            filters=config.filters,
-            kernel_size=config.kernel_size
+            channels=config.channels,
+            attention_channels=config.attention_channels,
+            kernel_size=config.kernel_size,
+            return_attention_maps=config.return_attention_maps
         )
 
     
