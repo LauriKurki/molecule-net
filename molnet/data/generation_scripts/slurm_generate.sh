@@ -2,7 +2,7 @@
 #SBATCH --account=project_2005247
 #SBATCH --time=04:00:00
 #SBATCH --output=log_gen.out
-#SBATCH -c 24
+#SBATCH -c 40
 #SBATCH --mem-per-cpu=4G
 
 source /scratch/project_2005247/lauri/venvs/molnet/bin/activate
