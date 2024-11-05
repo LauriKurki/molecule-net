@@ -39,3 +39,54 @@ class ResBlock(nn.Module):
         x = nn.relu(x + residual)
         
         return x
+
+
+class AttentionBlock3D(nn.Module):
+    attention_channels: int
+    kernel_size: Tuple[int, int, int] = (3, 3, 3)
+    conv_activation: nn.activation = nn.relu
+    attention_activation: nn.activation = nn.sigmoid
+
+    @nn.compact
+    def __call__(
+        self,
+        x: jnp.ndarray,
+        q: jnp.ndarray,
+    ):
+        # Upsample the query
+        target_shape = (x.shape[0], x.shape[1], x.shape[2], x.shape[3], q.shape[-1])
+        q = jax.image.resize(
+            q,
+            shape=target_shape,
+            method='bilinear'
+        )
+
+        # Convolve the query
+        q = self.conv_activation(
+            nn.Conv(
+                features=self.attention_channels,
+                kernel_size=self.kernel_size,
+            )(q)
+        )
+
+        # Convolve the input
+        x = self.conv_activation(
+            nn.Conv(
+                features=self.attention_channels,
+                kernel_size=self.kernel_size,
+            )(x)
+        )
+
+        # Compute the attention
+        a = self.conv_activation(x+q)
+        a = self.attention_activation(
+            nn.Conv(
+                1,
+                kernel_size=self.kernel_size
+            )(a)
+        )
+
+        # Apply the attention
+        y = a * x
+
+        return y, a
