@@ -3,12 +3,15 @@ import re
 
 from absl import logging
 
+import jax
+import flax
 import tensorflow as tf
 
 import chex
 import ml_collections
 
 from typing import Dict, List, Sequence
+
 
 def get_datasets(
     rng: chex.PRNGKey,
@@ -41,7 +44,6 @@ def get_datasets(
     files_by_split = {
         "train": filter_by_molecule_number(filenames, *config.train_molecules),
         "val": filter_by_molecule_number(filenames, *config.val_molecules),
-        "test": filter_by_molecule_number(filenames, *config.test_molecules),
     }
 
     element_spec = tf.data.Dataset.load(filenames[0]).element_spec
@@ -67,7 +69,7 @@ def get_datasets(
         dataset_split = dataset_split.map(
             lambda x: {
                 "images": x["images"],
-                "xyz": tf.pad(x["xyz"], [[0, config.max_atoms - tf.shape(x["xyz"])[0]], [0, 0]]),
+                #"xyz": tf.pad(x["xyz"], [[0, config.max_atoms - tf.shape(x["xyz"])[0]], [0, 0]]),
                 "atom_map": x["atom_map"],
             },
             num_parallel_calls=tf.data.AUTOTUNE,
@@ -122,3 +124,24 @@ def _preprocess_images(
     batch["atom_map"] = tf.transpose(batch["atom_map"], perm=[1, 2, 3, 0])
 
     return batch
+
+
+def get_pseudodatasets(rng, config):
+    """Loads pseudodatasets for each split."""
+    datasets = {}
+    for split in ["train", "val"]:
+        dataset = tf.data.Dataset.range(100)
+        dataset = dataset.repeat()
+        dataset = dataset.map(
+            lambda x: {
+                "images": tf.zeros((128, 128, 10, 1), dtype=tf.float32),
+                "xyz": tf.zeros((config.max_atoms, 5), dtype=tf.float32),
+                "atom_map": tf.zeros((128, 128, 21, 5), dtype=tf.float32),
+            },
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True,
+        )
+        dataset = dataset.batch(config.batch_size)
+        dataset = dataset.prefetch(tf.data.AUTOTUNE).as_numpy_iterator()
+        datasets[split] = dataset
+    return datasets

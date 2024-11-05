@@ -9,7 +9,7 @@ from absl import logging
 
 import flax
 from dataclasses import dataclass
-from clu import metric_writers, checkpoint
+from clu import metric_writers, checkpoint, metrics
 import flax.jax_utils
 
 from molnet import train_state, train
@@ -17,14 +17,14 @@ from molnet import train_state, train
 @dataclass
 class CheckpointHook:
     checkpoint_path: str
-    max_keep: int
+    max_to_keep: int
 
-    def __init__(self, checkpoint_path: str, max_keep: int):
+    def __init__(self, checkpoint_path: str, max_to_keep: int):
         self.checkpoint_path = checkpoint_path
-        self.max_keep = max_keep
+        self.max_to_keep = max_to_keep
         self.ckpt = checkpoint.Checkpoint(
             self.checkpoint_path,
-            max_to_keep=self.max_keep
+            max_to_keep=self.max_to_keep
         )
 
     def restore_or_init(
@@ -44,7 +44,7 @@ class CheckpointHook:
     ):
 
         # Unreplicate from all devices
-        state = flax.jax_utils.unreplicate(state)
+        #state = flax.jax_utils.unreplicate(state)
 
         # Save the state
         with open(
@@ -72,36 +72,31 @@ def add_prefix_to_keys(result: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 
 
 @dataclass
-class LogTrainMetricsHook:
+class LogTrainingMetricsHook:
     writer: metric_writers.SummaryWriter
-    is_empty: bool = True
+    prefix: str = "train"
 
     def __call__(
         self,
-        state: train_state.TrainState
+        train_metrics: metrics.Collection,
+        step: int
     ):
-        # Unreplicate from all devices
-        #train_metrics = state.train_metrics
-        train_metrics = flax.jax_utils.unreplicate(state.train_metrics)
+        """Logs the training metrics and returns an empty metrics collection."""
+        
+        train_metrics = train_metrics.compute()
 
-        if not self.is_empty:
-            # Log the metrics
-            train_metrics = train_metrics.compute()
-            self.writer.write_scalars(
-                step=state.get_step(),
-                scalars=add_prefix_to_keys(train_metrics, "train")
-            )
-            state = state.replace(
-                train_metrics=flax.jax_utils.replicate(train.Metrics.empty())
-            )
-            self.is_empty = True
+        self.writer.write_scalars(
+            step,
+            add_prefix_to_keys(train_metrics, self.prefix),
+        )
 
         self.writer.flush()
 
-        return state
+        return train.Metrics.empty()
+
 
 @dataclass
-class EvaluateModelHook:
+class EvaluationHook:
     evaluate_model_fn: Callable
     writer: metric_writers.SummaryWriter
     update_state_with_eval_metrics: bool = True
@@ -130,21 +125,15 @@ class EvaluateModelHook:
         # Note best state seen so far.
         # Best state is defined as the state with the lowest validation loss.
         try:
-            min_val_loss = state.metrics_for_best_params["val_eval"]["loss"]
+            min_val_loss = state.metrics_for_best_params["val_eval"]["total_loss"]
         except (AttributeError, KeyError):
             logging.info("No best state found yet.")
             min_val_loss = float("inf")
 
-        print("min_val_loss", min_val_loss)
-        print("eval_metrics", eval_metrics["val_eval"]["loss"])
-        print(jnp.all(eval_metrics["val_eval"]["loss"] < min_val_loss))
-
         if jnp.all(eval_metrics["val_eval"]["loss"] < min_val_loss):
-        #if True:
             state = state.replace(
                 best_params=state.params,
-                #metrics_for_best_params=eval_metrics,
-                metrics_for_best_params=flax.jax_utils.replicate(eval_metrics),
+                metrics_for_best_params=eval_metrics,
                 step_for_best_params=state.step,
             )
             logging.info("New best state found at step %d.", state.get_step())
