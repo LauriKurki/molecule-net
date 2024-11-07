@@ -115,6 +115,7 @@ def get_image_and_atom_map(
 
 def _create_one_atom_position_map_np(
         xyz: np.ndarray,
+        z_max: float,
         sw: np.ndarray,
         sw_size: float = 16.0,
         z_cutoff: float = 2.0,
@@ -122,11 +123,12 @@ def _create_one_atom_position_map_np(
         sigma: float = 0.2,
 ):
     """
-    Creates a three dimensional map of the atom positions. Atomic positions
-    represented with Gaussian functions.
+    Creates a three dimensional map of the atom positions for one species.
+    Atomic positions represented with Gaussian functions.
 
     Args:
         xyz: `jnp.ndarray` of shape (N, 5) where N is the number of atoms.
+        z_max: float. The maximum z-coordinate of the molecule.
         sw: `jnp.ndarray` of shape (2, 3). Scan window.
         sw_size: float. The size of the scan window in Ångströms.
         z_cutoff: float. Where to cutoff atoms.
@@ -136,11 +138,11 @@ def _create_one_atom_position_map_np(
     Returns:
         `jnp.ndarray` of shape (map_size/map_resolution, map_size/map_resolution). The atom position map. 
     """
-    xyz = xyz[xyz[:, 2] > xyz[:, 2].max() - z_cutoff]
+    xyz = xyz[xyz[:, 2] > z_max - z_cutoff]
 
     x = np.linspace(sw[0,0], sw[1,0], int(sw_size / map_resolution))
     y = np.linspace(sw[0,1], sw[1,1], int(sw_size / map_resolution))
-    z = np.arange(-z_cutoff, 1e-9, 0.1)
+    z = np.arange(z_max - z_cutoff, z_max, 0.1)
     X, Y, Z = np.meshgrid(x, y, z)
 
     if xyz.shape[0] == 0:
@@ -167,6 +169,7 @@ def get_image_and_atom_map_np(
     sigma=0.2,
 ):
     x, sw, xyz = get_image(fname, index, split)
+    z_max = xyz[:, 2].max()
 
     if x is None:
         return None, None, None
@@ -185,7 +188,7 @@ def get_image_and_atom_map_np(
         filtered_positions = np.where(mask[:, None], xyz[:, :3], np.zeros_like(xyz[:, :3])-np.inf)
         return filtered_positions
 
-    # Apply filtering and store in a 
+    # Apply filtering and store in a numpy array
     xyz_by_species = np.array([filter_by_species(sp) for sp in atomic_numbers])
 
     assert xyz_by_species.shape == (
@@ -200,6 +203,7 @@ def get_image_and_atom_map_np(
     atom_map = np.array([
         _create_one_atom_position_map_np(
             xyz,
+            z_max,
             sw,
             scan_window_size,
             z_cutoff,
