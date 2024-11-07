@@ -6,6 +6,26 @@ import ml_collections
 
 from molnet.models import UNet, AttentionUNet
 
+from typing import Callable
+
+
+def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
+    """Get the activation function based on the name."""
+    if activation.lower() == "relu":
+        return nn.relu
+    elif activation.lower() == "sigmoid":
+        return nn.sigmoid
+    elif activation.lower() == "tanh":
+        return nn.tanh
+    elif activation.lower() == "leaky_relu":
+        return nn.leaky_relu
+    elif activation.lower() == "gelu":
+        return nn.gelu
+    else:
+        raise ValueError(f"Activation {activation} not supported.")
+
+
+
 def create_model(
     config: ml_collections.ConfigDict
 ) -> nn.Module:
@@ -19,9 +39,13 @@ def create_model(
     elif config.model_name.lower() == "attention-unet":
         model = AttentionUNet(
             output_channels=config.output_channels,
-            channels=config.channels,
+            encoder_channels=config.encoder_channels,
+            decoder_channels=config.decoder_channels,
             attention_channels=config.attention_channels,
-            kernel_size=config.kernel_size,
+            encoder_kernel_size=config.encoder_kernel_size,
+            decoder_kernel_size=config.decoder_kernel_size,            
+            conv_activation=get_activation(config.conv_activation),
+            attention_activation=get_activation(config.attention_activation),
             return_attention_maps=config.return_attention_maps
         )
 

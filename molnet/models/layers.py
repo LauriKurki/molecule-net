@@ -2,14 +2,15 @@ import jax
 import jax.numpy as jnp
 import flax.linen as nn
 
-from typing import Tuple
+from typing import Tuple, Callable
 
 class ResBlock(nn.Module):
     """Residual block with two convolutional layers and a skip connection."""
 
-    filters: int
+    channels: int
     kernel_size: Tuple[int, int, int] = (3, 3, 3)
     strides: Tuple[int, int, int] = (1, 1, 1)
+    activation: Callable[[jnp.ndarray], jnp.ndarray] = nn.relu
 
     @nn.compact
     def __call__(
@@ -19,14 +20,14 @@ class ResBlock(nn.Module):
     ):
         residual = x
         x = nn.Conv(
-            features=self.filters,
+            features=self.channels,
             kernel_size=self.kernel_size,
             strides=self.strides,
         )(x)
         x = nn.BatchNorm(use_running_average=not training)(x)
-        x = nn.relu(x)
+        x = self.activation(x)
         x = nn.Conv(
-            features=self.filters,
+            features=self.channels,
             kernel_size=self.kernel_size,
             strides=self.strides,
         )(x)
@@ -34,9 +35,9 @@ class ResBlock(nn.Module):
 
         # Projection 
         if x.shape != residual.shape:
-            residual = nn.Conv(features=self.filters, kernel_size=1)(residual)
+            residual = nn.Conv(features=self.channels, kernel_size=1)(residual)
         
-        x = nn.relu(x + residual)
+        x = self.activation(x + residual)
         
         return x
 

@@ -22,9 +22,21 @@ def get_config() -> ml_collections.ConfigDict:
     config.model = ml_collections.ConfigDict()
     config.model.model_name = "attention-unet"
     config.model.output_channels = 5
-    config.model.channels = [2, 4, 8]
+    config.model.encoder_channels = [2, 4, 8]
+    config.model.decoder_channels = [8, 4, 2]
     config.model.attention_channels = [8, 8, 8]
-    config.model.kernel_size = [3, 3, 3]
+    config.model.encoder_kernel_size = [
+        [3, 3, 3],
+        [3, 3, 3],
+        [3, 3, 3],
+    ]
+    config.model.decoder_kernel_size = [
+        [3, 3, 3],
+        [3, 3, 3],
+        [3, 3, 3],
+    ]
+    config.model.conv_activation = "relu"
+    config.model.attention_activation = "sigmoid"
     config.model.return_attention_maps = False
 
     return config

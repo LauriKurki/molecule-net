@@ -4,7 +4,7 @@ import flax.linen as nn
 
 from molnet.models.layers import ResBlock, AttentionBlock3D
 
-from typing import Sequence
+from typing import Sequence, Callable, List
 
 class UNet(nn.Module):
 
@@ -78,18 +78,25 @@ class UNet(nn.Module):
 
 class AttentionUNet(nn.Module):
     output_channels: int
-    channels: Sequence[int]
+    encoder_channels: Sequence[int]
+    decoder_channels: Sequence[int]
     attention_channels: Sequence[int]
-    kernel_size: Sequence[int]
+    encoder_kernel_size: Sequence[List[int]]
+    decoder_kernel_size: Sequence[List[int]]
+    conv_activation: Callable[[jnp.ndarray], jnp.ndarray]
+    attention_activation: Callable[[jnp.ndarray], jnp.ndarray]
     return_attention_maps: bool = False
 
     @nn.compact
     def __call__(self, x, training: bool):
         attention_maps = []
         skips = []
-        for i, (f, k) in enumerate(zip(self.channels, self.kernel_size)):
+        for i, (channels, kernels) in enumerate(zip(self.encoder_channels, self.encoder_kernel_size)):
             x = ResBlock(
-                f, (k, k, k), name=f"encoder_{i}"
+                channels,
+                (kernels[0], kernels[1], kernels[2]),
+                activation=self.conv_activation,
+                name=f"encoder_{i}"
             )(x, training)
             skips.append(x)
 
@@ -97,19 +104,20 @@ class AttentionUNet(nn.Module):
 
         # Bottom path
         x = ResBlock(
-            self.channels[-1],
-            (self.kernel_size[-1],)*3,
+            self.encoder_channels[-1],
+            (self.encoder_kernel_size[-1][0], self.encoder_kernel_size[-1][1], self.encoder_kernel_size[-1][2]),
+            activation=self.conv_activation,
             name="bottom"
         )(x, training)
 
         # Upward path
-        for i, (f, k) in enumerate(zip(reversed(self.channels), reversed(self.kernel_size))):
+        for i, (channels, kernels) in enumerate(zip(self.decoder_channels, self.decoder_kernel_size)):
             # Attention
             a, map_i = AttentionBlock3D(
                 attention_channels=self.attention_channels[i],
                 kernel_size=(3, 3, 3),
-                conv_activation=nn.relu,
-                attention_activation=nn.sigmoid,
+                conv_activation=self.conv_activation,
+                attention_activation=self.attention_activation,
                 name=f"attention_{i}"
             )(skips.pop(), x)
             attention_maps.append(map_i)
@@ -123,7 +131,10 @@ class AttentionUNet(nn.Module):
 
             x = jnp.concatenate([x, a], axis=-1)
             x = ResBlock(
-                f, (k, k, k), name=f"decoder_{i}"
+                channels,
+                (kernels[0], kernels[1], kernels[2]),
+                activation=self.conv_activation,
+                name=f"decoder_{i}"
             )(x, training)
 
         # Output
