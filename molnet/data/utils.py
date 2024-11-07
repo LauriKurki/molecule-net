@@ -168,10 +168,11 @@ def get_image_and_atom_map_np(
     sigma=0.2,
 ):
     x, sw, xyz = get_image(fname, index, split)
-    z_max = xyz[:, 2].max()
-
+    
     if x is None:
         return None, None, None
+
+    z_max = xyz[:, 2].max()
 
     # Check if all Zs are in 'atomic_numbers'
     zs = xyz[:, -1].astype(int)
