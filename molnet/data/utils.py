@@ -138,7 +138,6 @@ def _create_one_atom_position_map_np(
     Returns:
         `jnp.ndarray` of shape (map_size/map_resolution, map_size/map_resolution). The atom position map. 
     """
-    xyz = xyz[xyz[:, 2] > z_max - z_cutoff]
 
     x = np.linspace(sw[0,0], sw[1,0], int(sw_size / map_resolution))
     y = np.linspace(sw[0,1], sw[1,1], int(sw_size / map_resolution))
