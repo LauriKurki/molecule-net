@@ -238,7 +238,7 @@ def atom_map_generator(
         xyzs = []
 
         for i in range(n_molecules):
-            res = get_image_and_atom_map(
+            x, atom_map, xyz = get_image_and_atom_map_np(
                 fname,
                 i,
                 atomic_numbers,
@@ -248,10 +248,9 @@ def atom_map_generator(
                 sigma,
             )
 
-            if res is None:
+            if xyz is None:
                 continue
 
-            x, atom_map, xyz = res
             xs.append(x)
             atom_maps.append(atom_map)
             xyzs.append(_pad_xyzs(xyz, 54))
