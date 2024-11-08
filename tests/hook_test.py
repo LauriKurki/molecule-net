@@ -10,54 +10,15 @@ import optax
 
 from molnet.models import create_model
 from molnet.data import input_pipeline
-from molnet import train_state, loss, hooks
+from molnet import train_state, loss, hooks, train
 
-from configs.tests import unet_test
-
-
-@jax.jit
-def predict_step(state, batch):
-    inputs, targets = batch['images'], batch['atom_map']
-    preds = state.apply_fn(
-        {'params': state.params, 'batch_stats': state.batch_stats},
-        inputs,
-        training=False,
-    )
-    preds_z = preds.shape[-2]
-    target = targets[..., -preds_z:, :]
-    loss_by_image = jnp.mean(
-        (preds - target) ** 2,
-        axis=(1, 2, 3, 4),
-    )
-    return inputs, target, preds, loss_by_image
-
-def predict_with_state(state, dataset, num_batches=1):
-    losses = []
-    preds = []
-    inputs = []
-    targets = []
-    
-    for i in range(num_batches):
-        batch = next(dataset)
-        (
-            batch_inputs, batch_targets, batch_preds, batch_loss
-        ) = predict_step(state, batch)
-        inputs.append(batch_inputs)
-        targets.append(batch_targets)
-        preds.append(batch_preds)
-        losses.append(batch_loss)
-
-    inputs = jnp.concatenate(inputs)
-    targets = jnp.concatenate(targets)
-    preds = jnp.concatenate(preds)
-    losses = jnp.concatenate(losses)
-
-    return inputs, targets, preds, losses
+from configs import root_dirs
+from configs.tests import attention_test
 
 
 def get_config():
-    config = unet_test.get_config()
-    config.root_dir = '/l/data/molnet/atom_maps/'
+    config = attention_test.get_config()
+    config.root_dir = root_dirs.get_root_dir()
     return config
 
 class HookTest(absltest.TestCase):
@@ -67,7 +28,7 @@ class HookTest(absltest.TestCase):
         datarng, rng = jax.random.split(rng)
         datasets = input_pipeline.get_datasets(datarng, self.config)
 
-        model = create_model(self.config)
+        model = create_model(self.config.model)
         x_init = next(datasets['train'])['images']
         variables = model.init(rng, x_init, training=True)
         params = variables['params']
@@ -89,7 +50,7 @@ class HookTest(absltest.TestCase):
         writer = metric_writers.SummaryWriter(self.workdir)
         self.hook = hooks.PredictionHook(
             workdir=workdir,
-            predict_fn=lambda state, num_batches: predict_with_state(
+            predict_fn=lambda state, num_batches: train.predict_with_state(
                 state,
                 datasets['val'],
                 num_batches,
