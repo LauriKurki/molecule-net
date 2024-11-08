@@ -59,3 +59,31 @@ def load_edafm(
                     break # TODO: Remove this line
 
     return molecules, indices
+
+def get_valid_indices(
+    h5_file: str,
+    atomic_numbers: jnp.ndarray,
+) -> List[Tuple[str, int]]:
+    """Get the indices of molecules that have all atoms in 'atomic_numbers'."""
+    valid_indices = []
+    splits = ['train', 'val', 'test']
+    with h5py.File(h5_file, 'r') as h5:
+        for split in splits:
+            xyz_all = h5[split]['xyz']
+            n_molecules = xyz_all.shape[0]
+
+            for i in tqdm.tqdm(range(n_molecules)):
+                xyz = xyz_all[i]
+                xyz = xyz[xyz[:, 4] > 0] # Remove padding atoms
+
+                # Check if there are any atoms left
+                if len(xyz) == 0:
+                    continue
+
+                Zs = xyz[:, -1].astype(int)
+
+                # Check if all Zs are in 'atomic_numbers'
+                if jnp.all(jnp.isin(Zs, atomic_numbers)):
+                    valid_indices.append((split, i))
+
+    return valid_indices
