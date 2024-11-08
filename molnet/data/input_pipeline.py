@@ -99,9 +99,11 @@ def _preprocess_images(
     """Preprocesses images."""
     
     x = batch["images"]
+    y = batch["atom_map"]
 
     # Cast the images to float32.
     x = tf.cast(x, tf.float32)
+    y = tf.cast(y, tf.float32)
 
     # Normalize the images to zero mean and unit variance.
     # images are [X, Y, Z] - normalize each z slice separately
@@ -120,9 +122,12 @@ def _preprocess_images(
     # Add channel dimension.
     x = x[..., tf.newaxis]
 
-    batch["images"] = x # [X, Y, Z, 1]
-    batch["atom_map"] = tf.transpose(batch["atom_map"], perm=[1, 2, 3, 0]) # [X, Y, Z, n_species]
+    # Swap the species channel to last
+    y = tf.transpose(y, perm=[1, 2, 3, 0])
 
+    batch["images"] = x # [X, Y, Z, 1]
+    batch["atom_map"] = y # [X, Y, Z, num_species]
+    
     return batch
 
 
