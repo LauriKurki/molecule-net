@@ -15,15 +15,17 @@ from multiprocessing import Pool
 from molnet.data import utils
 from molnet.data.datasets import edafm
 
+from typing import List, Tuple
+
 FLAGS = flags.FLAGS
 
 
 def generate_atom_maps(
     data_dir: str,
+    indices: List[Tuple[str, int]],
     start: int,
     end: int,
     atomic_numbers: np.ndarray,
-    split_lengths: dict,
     z_cutoff: float,
     map_resolution: float,
     sigma: float,
@@ -43,11 +45,11 @@ def generate_atom_maps(
     def generator():
         for i in tqdm.tqdm(range(start, end)):
 
-            index, split = utils.get_split_and_index(i, split_lengths)
+            split, index = indices[i]
             x, atom_map, xyz, = utils.get_image_and_atom_map_np(
                 data_dir,
-                index,
                 atomic_numbers,
+                index,
                 split,
                 z_cutoff,
                 map_resolution,
@@ -58,7 +60,7 @@ def generate_atom_maps(
 
             yield {
                 "images": x.astype(np.float16),
-                "xyz": xyz.astype(np.float32),
+                "xyz": xyz.astype(np.float16),
                 "atom_map": atom_map.astype(np.float16),
             }
 
@@ -76,20 +78,24 @@ def main(args) -> None:
 
     atomic_numbers = np.array([1, 6, 7, 8, 9])
 
-    # Calculate dataset shapes
-    n_mol, split_lengths = edafm.get_length(FLAGS.data_dir)
+    # get valid indices, i.e. indices of molecules that have all atoms
+    # in the atomic_numbers list
+    valid_indices = edafm.get_valid_indices(FLAGS.data_dir, atomic_numbers)
 
-    # Create new group in HDF5 file and add datasets to the group
+    # Calculate dataset shapes
+    n_mol = len(valid_indices)
+
+    # Create output directory
     os.makedirs(FLAGS.output_dir, exist_ok=True)
 
     # Create a list of arguments to pass to "generate_atom_maps"
     args_list = [
         (
             FLAGS.data_dir,
+            valid_indices,
             start,
             start+FLAGS.chunk_size,
             atomic_numbers,
-            split_lengths,
             FLAGS.z_cutoff,
             FLAGS.map_resolution,
             FLAGS.sigma,

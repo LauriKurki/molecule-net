@@ -141,7 +141,7 @@ def _create_one_atom_position_map_np(
 
     x = np.linspace(sw[0,0], sw[1,0], int(sw_size / map_resolution))
     y = np.linspace(sw[0,1], sw[1,1], int(sw_size / map_resolution))
-    z = np.arange(z_max - z_cutoff, z_max, 0.1)
+    z = np.arange(z_max - z_cutoff, z_max+1e-9, 0.1)
     X, Y, Z = np.meshgrid(x, y, z)
 
     if xyz.shape[0] == 0:
@@ -160,25 +160,19 @@ def _create_one_atom_position_map_np(
 
 def get_image_and_atom_map_np(
     fname,
-    index,
     atomic_numbers,
+    index,
     split='train',
     z_cutoff=2.0,
     map_resolution=0.125,
     sigma=0.2,
-):
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     x, sw, xyz = get_image(fname, index, split)
     
     if x is None:
         return None, None, None
 
     z_max = xyz[:, 2].max()
-
-    # Check if all Zs are in 'atomic_numbers'
-    zs = xyz[:, -1].astype(int)
-    if ~np.all(np.isin(zs, atomic_numbers)):
-        return None, None, None
-
     scan_window_size = np.ceil(sw[1,0] - sw[0,0])
 
     def filter_by_species(sp):
