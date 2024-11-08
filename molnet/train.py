@@ -54,7 +54,6 @@ def device_batch(
         else:
             batch.append(b)
 
-#@functools.partial(jax.pmap, axis_name="device")
 @jax.jit
 def train_step(
     state: train_state.TrainState,
@@ -93,7 +92,6 @@ def train_step(
     return new_state, batch_metrics
 
 
-#@functools.partial(jax.pmap, axis_name="device")
 @jax.jit
 def eval_step(
     state: train_state.TrainState,
@@ -142,7 +140,7 @@ def evaluate_model(
 
 @jax.jit
 def predict_step(state, batch):
-    inputs, targets = batch['images'], batch['atom_map']
+    inputs, targets, xyzs = batch['images'], batch['atom_map'], batch['xyz']
     preds = state.apply_fn(
         {'params': state.params, 'batch_stats': state.batch_stats},
         inputs,
@@ -154,19 +152,20 @@ def predict_step(state, batch):
         (preds - target) ** 2,
         axis=(1, 2, 3, 4),
     )
-    return inputs, target, preds, loss_by_image
+    return inputs, target, preds, xyzs, loss_by_image
 
 def predict_with_state(state, dataset, num_batches):
     losses = []
     preds = []
     inputs = []
     targets = []
+    xyzs = []
     
     for i in range(num_batches):
         batch = next(dataset)
 
         (
-            batch_inputs, batch_targets, batch_preds, batch_loss
+            batch_inputs, batch_targets, batch_preds, batch_xyzs, batch_loss
         ) = predict_step(
             state,
             batch
@@ -175,14 +174,16 @@ def predict_with_state(state, dataset, num_batches):
         inputs.append(batch_inputs)
         targets.append(batch_targets)
         preds.append(batch_preds)
+        xyzs.append(batch_xyzs)
         losses.append(batch_loss)
 
     inputs = jnp.concatenate(inputs)
     targets = jnp.concatenate(targets)
     preds = jnp.concatenate(preds)
+    xyzs = jnp.concatenate(xyzs)
     losses = jnp.concatenate(losses)
 
-    return inputs, targets, preds, losses
+    return inputs, targets, preds, xyzs, losses
 
 
 def train_and_evaluate(
