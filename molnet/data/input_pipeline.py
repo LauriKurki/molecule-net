@@ -69,7 +69,7 @@ def get_datasets(
         dataset_split = dataset_split.map(
             lambda x: {
                 "images": x["images"],
-                #"xyz": tf.pad(x["xyz"], [[0, config.max_atoms - tf.shape(x["xyz"])[0]], [0, 0]]),
+                "xyz": tf.pad(x["xyz"], [[0, config.max_atoms - tf.shape(x["xyz"])[0]], [0, 0]]),
                 "atom_map": x["atom_map"],
             },
             num_parallel_calls=tf.data.AUTOTUNE,
