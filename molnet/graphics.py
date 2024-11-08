@@ -1,5 +1,29 @@
+import numpy as np
 import jax.numpy as jnp
+from skimage import feature
+
+import ase
+from ase import io
 import matplotlib.pyplot as plt
+
+from typing import List
+
+INDEX_TO_ELEM = {0: 'H', 1: 'C', 2: 'N', 3: 'O', 4: 'F'}
+ELEM_TO_COLOR = {
+    "H": 'white',
+    "C": 'gray',
+    "N": 'blue',
+    "O": 'red',
+    "F": 'green'
+}
+INDEX_TO_COLOR = {i: ELEM_TO_COLOR[elem] for i, elem in INDEX_TO_ELEM.items()}
+NUMBER_TO_COLOR = {
+    1: 'white',
+    6: 'gray',
+    7: 'blue',
+    8: 'red',
+    9: 'green'
+}
 
 
 def save_predictions(
@@ -79,8 +103,8 @@ def save_predictions(
 
 def save_simple_predictions(
     inputs: jnp.ndarray,
-    preds: jnp.ndarray,
     targets: jnp.ndarray,
+    preds: jnp.ndarray,
     outdir: str,
 ):
     n_samples = inputs.shape[0]
@@ -110,3 +134,184 @@ def save_simple_predictions(
 
         plt.savefig(f'{outdir}/{sample:02}_total.png')
         plt.close()
+
+
+def save_attention_maps(
+    inputs: jnp.ndarray,
+    attention_maps: List[jnp.ndarray],
+    outdir: str,
+):
+    n_samples = inputs.shape[0]
+    n_heights = inputs.shape[-2]
+    n_maps = len(attention_maps)
+
+    for sample in range(n_samples):
+
+        fig = plt.figure()
+        subfigs = fig.subfigures(n_maps+1, 1, wspace=0.07)
+        subfigs[0].suptitle('Input')
+
+        axs_input = subfigs[0].subplots(1, 10)
+        for height in range(n_heights):
+            axs_input[height].imshow(inputs[sample, ..., height, 0], cmap='gray')
+            axs_input[height].set_xticks([])
+            axs_input[height].set_yticks([])
+
+        for i, attention_map in enumerate(attention_maps):
+            subfigs[i+1].suptitle(f'Attention map {i}')
+
+            axs = subfigs[i+1].subplots(1, 10)
+            for height in range(n_heights):
+                axs[height].imshow(attention_map[sample, ..., height, 0], cmap='gray')
+                axs[height].set_xticks([])
+                axs[height].set_yticks([])
+
+        plt.savefig(f'{outdir}/{sample:02}_attention.png')
+        plt.close()
+
+
+def save_predictions_as_molecules(
+    inputs: jnp.ndarray,
+    targets: jnp.ndarray,
+    preds: jnp.ndarray,
+    xyzs: jnp.ndarray,
+    outdir: str,
+    scan_dim: np.ndarray = np.array([16, 16, 1]),
+    z_cutoff: float = 1.0
+) -> None:
+
+    n_samples = inputs.shape[0]
+
+    for sample in range(n_samples):
+        inp = inputs[sample]
+        target = targets[sample]
+        pred = preds[sample]
+        xyz = xyzs[sample]
+
+        fig = plt.figure(figsize=(18, 6), layout='constrained')
+        subfig1, subfig2 = fig.subfigures(1, 2, wspace=0.07)
+
+        for i in range(10):
+            ax = subfig1.add_subplot(2, 5, i+1)
+            if i==0: ax.set_title('Input, far')
+            if i==9: ax.set_title('Close')
+            ax.imshow(inp[..., i, 0], cmap='gray', origin='lower')
+            ax.axis('off')
+
+        axes = subfig2.subplots(2, 3)
+        for i, (grid, name) in enumerate(zip([pred, target], ['pred', 'target'])):
+            peaks = feature.peak_local_max(
+                grid,
+                min_distance=5,
+                exclude_border=0
+            )
+
+            xyz_from_peaks = peaks[:, [1, 0, 2]] * scan_dim / target.shape[:3]
+            elem_from_peaks = peaks[:, 3]
+
+            mol = ase.Atoms(
+                positions=xyz_from_peaks,
+                symbols=[INDEX_TO_ELEM[elem] for elem in elem_from_peaks],
+                cell=scan_dim
+            )
+
+            # Top to z_cutoff
+            mol.positions[:, 2] -= mol.get_positions()[:, 2].max() - z_cutoff
+
+            # for upper row, plot from above
+            plot_molecule(
+                ax=axes[0, i],
+                x=xyz_from_peaks[:, 0],
+                y=xyz_from_peaks[:, 1],
+                z=xyz_from_peaks[:, 2],
+                colors=[INDEX_TO_COLOR[elem] for elem in elem_from_peaks],
+                xlim=(0, scan_dim[0]),
+                ylim=(0, scan_dim[1]),
+            )
+            axes[0, i].set_title(f"{name} from HeightMultiMap")
+
+            # for lower row, plot from the side
+            plot_molecule(
+                ax=axes[1, i],
+                x=xyz_from_peaks[:, 0],
+                y=xyz_from_peaks[:, 2],
+                z=xyz_from_peaks[:, 1],
+                colors=[INDEX_TO_COLOR[elem] for elem in elem_from_peaks],
+                xlim=(0, scan_dim[0]),
+                ylim=(-3, scan_dim[2]+1),
+            )
+            axes[1, i].set_title("sideview")
+
+            # Save the molecule
+            io.write(f'{outdir}/{sample:02}_{name}.xyz', mol)
+
+        # Save the entire molecule
+        xyz = xyz[xyz[:, -1] != 0]
+        true_mol = ase.Atoms(
+            positions=xyz[:, :3],
+            numbers=xyz[:, -1].astype(int),
+            cell=scan_dim
+        )
+        true_mol.center(axis=(0, 1))
+        true_mol.positions[:, 2] -= true_mol.get_positions()[:, 2].max() - z_cutoff
+        io.write(f'{outdir}/{sample:02}_true.xyz', true_mol)
+
+        xyz = true_mol.get_positions()
+        plot_molecule(
+            ax=axes[0, 2],
+            x=xyz[:, 0],
+            y=xyz[:, 1],
+            z=xyz[:, 2],
+            colors=[NUMBER_TO_COLOR[elem.item()] for elem in true_mol.get_atomic_numbers()],
+            xlim=(0, scan_dim[0]),
+            ylim=(0, scan_dim[1]),
+        )
+        axes[0, 2].set_title(f"Entire molecule")
+        
+        plot_molecule(
+            ax=axes[1, 2],
+            x=xyz[:, 0],
+            y=xyz[:, 2],
+            z=xyz[:, 1],
+            colors=[NUMBER_TO_COLOR[elem.item()] for elem in true_mol.get_atomic_numbers()],
+            xlim=(0, scan_dim[0]),
+            ylim=(xyz[:, 2].min()-2, scan_dim[2]+1),
+            z_cutoff=z_cutoff
+        )
+        axes[1, 2].set_title(f"side view")
+
+        plt.savefig(f'{outdir}/{sample:02}_molecules.png')
+        plt.close()
+
+
+def plot_molecule(
+    ax: plt.Axes,
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    colors: np.ndarray,
+    show_bonds: bool = False,
+    xlim = (0, 16),
+    ylim = (0, 16),
+    z_cutoff: float = None
+) -> None:
+    
+
+    # Compute sizes based on z
+    sizes = np.clip(z, .5, 1) * 40
+
+    ax.scatter(x, y, s=sizes, c=colors, edgecolors='black')
+
+    if z_cutoff is not None:
+        ax.axhline(y.max() - z_cutoff, color='black', linestyle='--')
+
+    if show_bonds:
+        # TODO: Implement bond drawing
+        pass
+
+
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+    ax.set_aspect('equal')

@@ -18,6 +18,7 @@ dependencies = [
     "flax",
     "tqdm",
     "ase",
+    "scipy"
 ]
 
 [tool.setuptools.packages]

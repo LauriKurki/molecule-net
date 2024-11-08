@@ -166,7 +166,7 @@ class PredictionHook:
 
         # Predict on the test set
         (
-            inputs, targets, preds, losses
+            inputs, targets, preds, xyzs, losses
         ) = self.predict_fn(
             state,
             num_batches
@@ -179,11 +179,6 @@ class PredictionHook:
             preds.shape,
             targets.shape,
         ) # [num_samples, nX, nY, nZ, num_species]
-
-        # Write detailed predictions
-        graphics.save_predictions(
-            inputs, targets, preds, losses, output_dir
-        )
 
         # Write predictions in simplified format (sum over heights and species)
         inputs_summed = inputs.sum(axis=(3, 4))[..., None]
@@ -199,12 +194,24 @@ class PredictionHook:
         preds_summed = preds_summed / preds_summed.max()
         targets_summed = targets_summed / targets_summed.max()
 
-        assert inputs_summed.ndim == 4, inputs_summed.shape
-        assert preds_summed.ndim == 4, preds_summed.shape
-        assert targets_summed.ndim == 4, targets_summed.shape
+        assert inputs_summed.ndim == 4, inputs_summed.shape # [num_samples, nX, nY, 1]
+        assert preds_summed.ndim == 4, preds_summed.shape # [num_samples, nX, nY, 1]
+        assert targets_summed.ndim == 4, targets_summed.shape # [num_samples, nX, nY, 1]
+
+        # Write detailed predictions
+        graphics.save_predictions(
+            inputs, targets, preds, losses, output_dir
+        )
+
+        graphics.save_simple_predictions(
+            inputs_summed, targets_summed, preds_summed, output_dir
+        )
+
+        graphics.save_predictions_as_molecules(
+            inputs, targets, preds, xyzs, output_dir
+        )
 
         # Disable writing of images for now
-
         #self.writer.write_images(
         #    state.get_step(),
         #    {
@@ -213,7 +220,3 @@ class PredictionHook:
         #        "preds": preds_summed,
         #    },
         #)
-
-        graphics.save_simple_predictions(
-            inputs_summed, targets_summed, preds_summed, output_dir
-        )
