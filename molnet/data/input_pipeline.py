@@ -120,8 +120,8 @@ def _preprocess_images(
     # Add channel dimension.
     x = x[..., tf.newaxis]
 
-    batch["images"] = x
-    batch["atom_map"] = tf.transpose(batch["atom_map"], perm=[1, 2, 3, 0])
+    batch["images"] = x # [X, Y, Z, 1]
+    batch["atom_map"] = tf.transpose(batch["atom_map"], perm=[1, 2, 3, 0]) # [X, Y, Z, n_species]
 
     return batch
 
