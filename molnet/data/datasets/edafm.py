@@ -1,4 +1,5 @@
 import h5py
+import numpy as np
 import jax.numpy as jnp
 import ase
 
@@ -83,7 +84,7 @@ def get_valid_indices(
                 Zs = xyz[:, -1].astype(int)
 
                 # Check if all Zs are in 'atomic_numbers'
-                if jnp.all(jnp.isin(Zs, atomic_numbers)):
+                if np.all(np.isin(Zs, atomic_numbers)):
                     valid_indices.append((split, i))
 
     return valid_indices
