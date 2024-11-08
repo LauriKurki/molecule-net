@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
+from typing import List
 
 def save_predictions(
     inputs: jnp.ndarray,
@@ -109,4 +110,38 @@ def save_simple_predictions(
         plt.colorbar(im, ax=axs[2], location='right')
 
         plt.savefig(f'{outdir}/{sample:02}_total.png')
+        plt.close()
+
+
+def save_attention_maps(
+    inputs: jnp.ndarray,
+    attention_maps: List[jnp.ndarray],
+    outdir: str,
+):
+    n_samples = inputs.shape[0]
+    n_heights = inputs.shape[-2]
+    n_maps = len(attention_maps)
+
+    for sample in range(n_samples):
+
+        fig = plt.figure()
+        subfigs = fig.subfigures(n_maps+1, 1, wspace=0.07)
+        subfigs[0].suptitle('Input')
+
+        axs_input = subfigs[0].subplots(1, 10)
+        for height in range(n_heights):
+            axs_input[height].imshow(inputs[sample, ..., height, 0], cmap='gray')
+            axs_input[height].set_xticks([])
+            axs_input[height].set_yticks([])
+
+        for i, attention_map in enumerate(attention_maps):
+            subfigs[i+1].suptitle(f'Attention map {i}')
+
+            axs = subfigs[i+1].subplots(1, 10)
+            for height in range(n_heights):
+                axs[height].imshow(attention_map[sample, ..., height, 0], cmap='gray')
+                axs[height].set_xticks([])
+                axs[height].set_yticks([])
+
+        plt.savefig(f'{outdir}/{sample:02}_attention.png')
         plt.close()
