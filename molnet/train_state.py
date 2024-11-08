@@ -17,3 +17,6 @@ class TrainState(train_state.TrainState):
             return int(self.step)
         except TypeError:
             return int(self.step[0])
+
+class EvaluationState(train_state.TrainState):
+    batch_stats: Any
