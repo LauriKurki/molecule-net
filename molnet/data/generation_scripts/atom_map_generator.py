@@ -84,6 +84,7 @@ def main(args) -> None:
 
     # Calculate dataset shapes
     n_mol = len(valid_indices)
+    logging.info(f"Total length of the dataset: {n_mol}")
 
     # Create output directory
     os.makedirs(FLAGS.output_dir, exist_ok=True)
