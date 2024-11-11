@@ -185,6 +185,7 @@ def save_predictions_as_molecules(
     outdir: str,
     scan_dim: np.ndarray = np.array([16, 16, 1]),
     z_cutoff: float = 1.0,
+    peak_threshold: float = 0.5,
     start_save_idx: int = 0,
 ) -> None:
 
@@ -211,7 +212,8 @@ def save_predictions_as_molecules(
             peaks = feature.peak_local_max(
                 grid,
                 min_distance=5,
-                exclude_border=0
+                exclude_border=0,
+                threshold_rel=peak_threshold
             )
 
             xyz_from_peaks = peaks[:, [1, 0, 2]] * scan_dim / target.shape[:3]
