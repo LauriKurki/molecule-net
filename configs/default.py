@@ -39,4 +39,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.learning_rate_schedule_kwargs.warmup_steps = 2000
     config.learning_rate_schedule_kwargs.decay_steps = 50000
 
+    # Predictions
+    config.peak_threshold = 0.5
+
     return config

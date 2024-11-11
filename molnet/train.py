@@ -264,6 +264,7 @@ def train_and_evaluate(
             datasets["val"],
             num_batches,
         ),
+        peak_threshold=config.peak_threshold,
         writer=writer,
     )
 

@@ -147,6 +147,7 @@ class EvaluationHook:
 class PredictionHook:
     workdir: str
     predict_fn: Callable
+    peak_threshold: float
     writer: metric_writers.SummaryWriter
 
     def __call__(
@@ -208,7 +209,7 @@ class PredictionHook:
         )
 
         graphics.save_predictions_as_molecules(
-            inputs, targets, preds, xyzs, output_dir
+            inputs, targets, preds, xyzs, output_dir, peak_threshold=self.peak_threshold
         )
 
         # Disable writing of images for now
