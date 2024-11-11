@@ -52,8 +52,20 @@ def make_predictions(
     workdir: str,
     outputdir: str,
     num_batches: int,
-    batch_size: Optional[int] = None
+    batch_size: Optional[int] = None,
+    peak_threshold: Optional[float] = 0.5
 ):
+    """
+    Make predictions for a model checkpoint.
+
+    Args:
+    - workdir `str`: the directory containing the model checkpoint
+    - outputdir `str`: the directory to save the predictions
+    - num_batches `int`: the number of batches to predict
+    - batch_size `Optional[int]`: the batch size to use for prediction. Mainly for running on 
+        local machine with less memory.
+    - peak_threshold `Optional[float]`: the threshold (relative to max) for peak detection
+    """
     # Create the output directory
     os.makedirs(outputdir, exist_ok=True)
 
@@ -97,7 +109,13 @@ def make_predictions(
         )
         # Plot the predictions as molecules
         graphics.save_predictions_as_molecules(
-            inputs, targets, preds, xyzs, outputdir, start_save_idx=i*config.batch_size
+            inputs,
+            targets,
+            preds,
+            xyzs,
+            outputdir,
+            peak_threshold=peak_threshold,
+            start_save_idx=i*config.batch_size
         )
 
         # Write predictions in simplified format (sum over heights and species)
@@ -130,16 +148,13 @@ def make_predictions(
 
 def main(argv):
     del argv
-    workdir = os.path.abspath(FLAGS.workdir)
-    outputdir = FLAGS.outputdir
-    num_batches = FLAGS.num_batches
-    batch_size = FLAGS.batch_size
 
+    # Make predictions    
     make_predictions(
-        workdir,
-        outputdir,
-        num_batches,
-        batch_size
+        os.path.abspath(FLAGS.workdir),
+        FLAGS.outputdir,
+        FLAGS.num_batches,
+        FLAGS.batch_size
     )
 
 
@@ -152,6 +167,7 @@ if __name__ == "__main__":
     )
     flags.DEFINE_integer("num_batches", 1, "The number of batches to predict.")
     flags.DEFINE_integer("batch_size", None, "The batch size to use for prediction.")
+    flags.DEFINE_bool("peak_threshold", 0.5, "The threshold (relative to max) for peak detection.")
 
     flags.mark_flags_as_required(["workdir"])
 
