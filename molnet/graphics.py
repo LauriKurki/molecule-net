@@ -3,6 +3,7 @@ import jax.numpy as jnp
 from skimage import feature
 
 import ase
+import ase.data
 from ase import io
 import matplotlib.pyplot as plt
 
@@ -32,6 +33,7 @@ def save_predictions(
     preds: jnp.ndarray,
     losses: jnp.ndarray,
     outdir: str,
+    start_save_idx: int = 0,
 ):
 
     titles = ['H', 'C', 'N', 'O', 'F']
@@ -97,7 +99,8 @@ def save_predictions(
             axs_target[0, 0].set_ylabel('Far')
             axs_target[-1, 0].set_ylabel('Close')
 
-        plt.savefig(f'{outdir}/{sample:02}_prediction.png')
+        save_idx = start_save_idx + sample
+        plt.savefig(f'{outdir}/{save_idx:02}_prediction.png')
         plt.close()
 
 
@@ -106,6 +109,7 @@ def save_simple_predictions(
     targets: jnp.ndarray,
     preds: jnp.ndarray,
     outdir: str,
+    start_save_idx: int = 0,
 ):
     n_samples = inputs.shape[0]
 
@@ -132,7 +136,8 @@ def save_simple_predictions(
         axs[2].set_yticks([])
         plt.colorbar(im, ax=axs[2], location='right')
 
-        plt.savefig(f'{outdir}/{sample:02}_total.png')
+        save_index = start_save_idx + sample
+        plt.savefig(f'{outdir}/{save_index:02}_simple_prediction.png')
         plt.close()
 
 
@@ -140,6 +145,7 @@ def save_attention_maps(
     inputs: jnp.ndarray,
     attention_maps: List[jnp.ndarray],
     outdir: str,
+    start_save_idx: int = 0,
 ):
     n_samples = inputs.shape[0]
     n_heights = inputs.shape[-2]
@@ -166,7 +172,8 @@ def save_attention_maps(
                 axs[height].set_xticks([])
                 axs[height].set_yticks([])
 
-        plt.savefig(f'{outdir}/{sample:02}_attention.png')
+        save_index = start_save_idx + sample
+        plt.savefig(f'{outdir}/{save_index:02}_attention.png')
         plt.close()
 
 
@@ -177,7 +184,8 @@ def save_predictions_as_molecules(
     xyzs: jnp.ndarray,
     outdir: str,
     scan_dim: np.ndarray = np.array([16, 16, 1]),
-    z_cutoff: float = 1.0
+    z_cutoff: float = 1.0,
+    start_save_idx: int = 0,
 ) -> None:
 
     n_samples = inputs.shape[0]
@@ -217,6 +225,7 @@ def save_predictions_as_molecules(
 
             # Top to z_cutoff
             mol.positions[:, 2] -= mol.get_positions()[:, 2].max() - z_cutoff
+            elements = mol.get_atomic_numbers()
 
             # for upper row, plot from above
             plot_molecule(
@@ -224,7 +233,7 @@ def save_predictions_as_molecules(
                 x=xyz_from_peaks[:, 0],
                 y=xyz_from_peaks[:, 1],
                 z=xyz_from_peaks[:, 2],
-                colors=[INDEX_TO_COLOR[elem] for elem in elem_from_peaks],
+                elements=elements,
                 xlim=(0, scan_dim[0]),
                 ylim=(0, scan_dim[1]),
             )
@@ -236,14 +245,16 @@ def save_predictions_as_molecules(
                 x=xyz_from_peaks[:, 0],
                 y=xyz_from_peaks[:, 2],
                 z=xyz_from_peaks[:, 1],
-                colors=[INDEX_TO_COLOR[elem] for elem in elem_from_peaks],
+                elements=elements,
                 xlim=(0, scan_dim[0]),
                 ylim=(-3, scan_dim[2]+1),
             )
             axes[1, i].set_title("sideview")
 
             # Save the molecule
-            io.write(f'{outdir}/{sample:02}_{name}.xyz', mol)
+            save_index = start_save_idx + sample
+            io.write(f'{outdir}/{save_index:02}_{name}.xyz', mol)
+
 
         # Save the entire molecule
         xyz = xyz[xyz[:, -1] != 0]
@@ -254,15 +265,17 @@ def save_predictions_as_molecules(
         )
         true_mol.center(axis=(0, 1))
         true_mol.positions[:, 2] -= true_mol.get_positions()[:, 2].max() - z_cutoff
-        io.write(f'{outdir}/{sample:02}_true.xyz', true_mol)
+        save_index = start_save_idx + sample
+        io.write(f'{outdir}/{save_index:02}_true.xyz', true_mol)
 
         xyz = true_mol.get_positions()
+        elements = true_mol.get_atomic_numbers()
         plot_molecule(
             ax=axes[0, 2],
             x=xyz[:, 0],
             y=xyz[:, 1],
             z=xyz[:, 2],
-            colors=[NUMBER_TO_COLOR[elem.item()] for elem in true_mol.get_atomic_numbers()],
+            elements=elements,
             xlim=(0, scan_dim[0]),
             ylim=(0, scan_dim[1]),
         )
@@ -273,14 +286,15 @@ def save_predictions_as_molecules(
             x=xyz[:, 0],
             y=xyz[:, 2],
             z=xyz[:, 1],
-            colors=[NUMBER_TO_COLOR[elem.item()] for elem in true_mol.get_atomic_numbers()],
+            elements=elements,
             xlim=(0, scan_dim[0]),
             ylim=(xyz[:, 2].min()-2, scan_dim[2]+1),
             z_cutoff=z_cutoff
         )
         axes[1, 2].set_title(f"side view")
 
-        plt.savefig(f'{outdir}/{sample:02}_molecules.png')
+        save_index = start_save_idx + sample
+        plt.savefig(f'{outdir}/{save_index:02}_molecules.png')
         plt.close()
 
 
@@ -289,13 +303,15 @@ def plot_molecule(
     x: np.ndarray,
     y: np.ndarray,
     z: np.ndarray,
-    colors: np.ndarray,
-    show_bonds: bool = False,
+    elements: np.ndarray, # atomic numbers
+    show_bonds: bool = True,
     xlim = (0, 16),
     ylim = (0, 16),
     z_cutoff: float = None
 ) -> None:
     
+    # Convert atomic numbers to colors
+    colors = [NUMBER_TO_COLOR[elem] for elem in elements]
 
     # Compute sizes based on z
     sizes = np.clip(z, .5, 1) * 40
@@ -306,9 +322,12 @@ def plot_molecule(
         ax.axhline(y.max() - z_cutoff, color='black', linestyle='--')
 
     if show_bonds:
-        # TODO: Implement bond drawing
-        pass
-
+        pos = np.stack([x, y, z], axis=-1)
+        for i in range(len(elements)):
+            for j in range(i+1, len(elements)):
+                bond_length = ase.data.covalent_radii[elements[i]] + ase.data.covalent_radii[elements[j]]
+                if np.linalg.norm(pos[i] - pos[j]) < bond_length * 1.1:                
+                    ax.plot([x[i], x[j]], [y[i], y[j]], color='black', linewidth=0.5, zorder=-1)
 
     if xlim is not None:
         ax.set_xlim(*xlim)

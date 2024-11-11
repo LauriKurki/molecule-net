@@ -33,7 +33,7 @@ def pred_fn(
     - mse `jnp.ndarray`: the mean squared error
     """
 
-    inputs, targets = batch['images'], batch['atom_map']
+    inputs, targets, xyzs = batch['images'], batch['atom_map'], batch['xyz']
     preds, attention = state.apply_fn(
         {'params': state.params, 'batch_stats': state.batch_stats},
         inputs,
@@ -45,7 +45,7 @@ def pred_fn(
     # mse
     mse = jnp.mean(jnp.square(targets - preds), axis=(1, 2, 3, 4))
     
-    return inputs, targets, preds, attention, mse
+    return inputs, targets, preds, attention, xyzs, mse
 
 
 def make_predictions(
@@ -73,7 +73,10 @@ def make_predictions(
     for i, batch in enumerate(dataset):
         if i >= num_batches:
             break
-        inputs, targets, preds, attention_maps, error = pred_fn(state, batch)
+        inputs, targets, preds, attention_maps, xyzs, error = pred_fn(
+            state,
+            batch
+        )
         
         # Save the predictions
         jnp.savez(
@@ -84,14 +87,17 @@ def make_predictions(
             *{f"attention_{j}": attention for j, attention in enumerate(attention_maps)}
         )
 
+        # Plot the attention maps
         graphics.save_attention_maps(
-            inputs,
-            attention_maps,
-            outputdir
+            inputs, attention_maps, outputdir, start_save_idx=i*config.batch_size
         )
         # Plot the predictions
         graphics.save_predictions(
-            inputs, targets, preds, error, outputdir
+            inputs, targets, preds, error, outputdir, start_save_idx=i*config.batch_size
+        )
+        # Plot the predictions as molecules
+        graphics.save_predictions_as_molecules(
+            inputs, targets, preds, xyzs, outputdir, start_save_idx=i*config.batch_size
         )
 
         # Write predictions in simplified format (sum over heights and species)
@@ -117,7 +123,8 @@ def make_predictions(
             inputs_summed,
             preds_summed,
             targets_summed,
-            outputdir
+            outputdir,
+            start_save_idx=i*config.batch_size
         )
 
 
@@ -140,7 +147,7 @@ if __name__ == "__main__":
     flags.DEFINE_string("workdir", None, "The directory containing the model checkpoint.")
     flags.DEFINE_string(
         "outputdir",
-        os.path.join(os.getcwd(), "analyses", "analysed_workdirs"),
+        os.path.join(os.getcwd(), "analyses"),
         "The directory to save the predictions."
     )
     flags.DEFINE_integer("num_batches", 1, "The number of batches to predict.")
