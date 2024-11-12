@@ -9,7 +9,7 @@ dependencies = [
     "jax",
     "matplotlib",
     "numpy",
-    "tensorflow==2.13.0",
+    "tensorflow-cpu==2.13.0",
     "clu==0.0.9",
     "h5py",
     "absl-py",
@@ -18,7 +18,11 @@ dependencies = [
     "flax",
     "tqdm",
     "ase",
-    "scipy"
+    "scipy",
+    "scikit-image",
+    "torch",
+    "torchvision",
+    "torchaudio"
 ]
 
 [tool.setuptools.packages]

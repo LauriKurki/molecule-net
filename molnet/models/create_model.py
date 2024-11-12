@@ -1,26 +1,30 @@
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
+import flax.linen as lnn
+import torch.nn as tnn
 
 import ml_collections
 
 from molnet.models import UNet, AttentionUNet
 
-from typing import Callable
+from typing import Callable, Union
 
 
-def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
-    """Get the activation function based on the name."""
+def get_activation(
+    activation: str,
+    code: str
+) -> Callable[[jnp.ndarray], jnp.ndarray]:
+    """Get the activation function based on the name and code."""
     if activation.lower() == "relu":
-        return nn.relu
+        return lnn.relu if code == "jax" else tnn.ReLU
     elif activation.lower() == "sigmoid":
-        return nn.sigmoid
+        return lnn.sigmoid if code == "jax" else tnn.Sigmoid
     elif activation.lower() == "tanh":
-        return nn.tanh
+        return lnn.tanh if code == "jax" else tnn.Tanh
     elif activation.lower() == "leaky_relu":
-        return nn.leaky_relu
+        return lnn.leaky_relu if code == "jax" else tnn.LeakyReLU
     elif activation.lower() == "gelu":
-        return nn.gelu
+        return lnn.gelu if code == "jax" else tnn.GELU
     else:
         raise ValueError(f"Activation {activation} not supported.")
 
@@ -28,7 +32,7 @@ def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
 
 def create_model(
     config: ml_collections.ConfigDict
-) -> nn.Module:
+) -> Union[lnn.Module, tnn.Module]:
     """Create a model based on the configuration."""
     if config.model_name.lower() == "unet":
         model = UNet(
