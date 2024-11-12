@@ -3,8 +3,6 @@ import re
 
 from absl import logging
 
-import jax
-import flax
 import tensorflow as tf
 
 import chex
@@ -14,7 +12,6 @@ from typing import Dict, List, Sequence
 
 
 def get_datasets(
-    rng: chex.PRNGKey,
     config: ml_collections.ConfigDict,
 ) -> Dict[str, tf.data.Dataset]:
     """Loads datasets for each split."""
@@ -78,7 +75,12 @@ def get_datasets(
 
         # Preprocess images.
         dataset_split = dataset_split.map(
-            lambda x: _preprocess_images(x, config.noise_std, seed=config.rng_seed),
+            lambda x: _preprocess_images(
+                x,
+                config.noise_std,
+                batch_order=config.batch_order,
+                seed=config.rng_seed
+            ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,
         )
@@ -94,6 +96,7 @@ def get_datasets(
 def _preprocess_images(
     batch: Dict[str, tf.Tensor],
     noise_std: float = 0.0,
+    batch_order: str = "jax",
     seed: int = 0
 ) -> Dict[str, tf.Tensor]:
     """Preprocesses images."""
@@ -119,33 +122,66 @@ def _preprocess_images(
     if noise_std > 0.0:
         x = x + tf.random.normal(tf.shape(x), stddev=noise_std, seed=seed)
 
-    # Add channel dimension.
-    x = x[..., tf.newaxis]
+    if batch_order == "jax":
+        # Add channel dimension last.
+        x = x[..., tf.newaxis]
+        # Swap the species channel to last
+        y = tf.transpose(y, perm=[1, 2, 3, 0])
+    elif batch_order == "torch":
+        # Add channel dimension first.
+        x = x[tf.newaxis, ...]
+        # Species channel is already first
+    else:
+        raise ValueError(f"Invalid batch order: {batch_order}")
 
-    # Swap the species channel to last
-    y = tf.transpose(y, perm=[1, 2, 3, 0])
-
-    batch["images"] = x # [X, Y, Z, 1]
-    batch["atom_map"] = y # [X, Y, Z, num_species]
+    batch["images"] = x # [X, Y, Z, 1] or [1, X, Y, Z]
+    batch["atom_map"] = y # [X, Y, Z, num_species] or [num_species, X, Y, Z]
     
     return batch
 
 
-def get_pseudodatasets(rng, config):
+def get_pseudodatasets(config):
     """Loads pseudodatasets for each split."""
     datasets = {}
     for split in ["train", "val"]:
-        dataset = tf.data.Dataset.range(100)
+        dataset = tf.data.Dataset.range(1000)
         dataset = dataset.repeat()
+        xyz = tf.constant([
+            [1.0, 2.0, 3.0, 0.0, 1.0],
+            [4.0, 5.0, 6.0, 1.0, 6.0],
+            [7.0, 8.0, 9.0, 0.0, 1.0],
+            [10.0, 11.0, 12.0, 1.0, 6.0],
+        ])
         dataset = dataset.map(
             lambda x: {
-                "images": tf.zeros((128, 128, 10, 1), dtype=tf.float32),
-                "xyz": tf.zeros((config.max_atoms, 5), dtype=tf.float32),
-                "atom_map": tf.zeros((128, 128, 21, 5), dtype=tf.float32),
+                "images": tf.zeros((64, 64, 10), dtype=tf.float32),
+                "xyz": xyz,
+                "atom_map": tf.zeros((5, 64, 64, 21), dtype=tf.float32),
             },
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,
         )
+        if config.batch_order == "jax":
+            fn = lambda x: {
+                    "images": x["images"][..., tf.newaxis],
+                    "xyz": x["xyz"],
+                    "atom_map": tf.transpose(x["atom_map"], perm=[1, 2, 3, 0]),
+                }
+        elif config.batch_order == "torch":
+            fn = lambda x: {
+                    "images": x["images"][tf.newaxis, ...],
+                    "xyz": x["xyz"],
+                    "atom_map": x["atom_map"],
+                }
+        else:
+            raise ValueError(f"Invalid batch order: {config.batch_order}")
+        
+        dataset = dataset.map(
+            fn,
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True,
+        )
+
         dataset = dataset.batch(config.batch_size)
         dataset = dataset.prefetch(tf.data.AUTOTUNE).as_numpy_iterator()
         datasets[split] = dataset

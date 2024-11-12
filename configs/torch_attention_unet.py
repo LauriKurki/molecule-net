@@ -5,7 +5,7 @@ def get_model_config() -> ml_collections.ConfigDict:
     """Get hyperparameters for the UNet model."""
 
     config = ml_collections.ConfigDict()
-    config.model_name = "Eq-Attention-UNet"
+    config.model_name = "Torch-Attention-UNet"
     config.output_channels = 5
     config.encoder_channels = [16, 32, 64]
     config.decoder_channels = [64, 32, 16]

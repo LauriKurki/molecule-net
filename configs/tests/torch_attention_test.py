@@ -16,11 +16,13 @@ def get_config() -> ml_collections.ConfigDict:
     config.predict_num_batches_at_end_of_training = 1
     
     config.batch_size = 4
+    config.batch_order = "torch"
+
     config.train_molecules = (0, 1000)
     config.val_molecules = (1000, 2000)
 
     config.model = ml_collections.ConfigDict()
-    config.model.model_name = "eq-attention-unet"
+    config.model.model_name = "torch-attention-unet"
     config.model.output_channels = 5
     config.model.encoder_channels = [2, 4, 8]
     config.model.decoder_channels = [8, 4, 2]

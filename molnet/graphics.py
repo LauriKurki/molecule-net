@@ -2,6 +2,8 @@ import numpy as np
 import jax.numpy as jnp
 from skimage import feature
 
+from absl import logging
+
 import ase
 import ase.data
 from ase import io
@@ -215,6 +217,10 @@ def save_predictions_as_molecules(
                 exclude_border=0,
                 threshold_rel=peak_threshold
             )
+
+            if len(peaks) == 0:
+                logging.info(f"No peaks found.")
+                continue
 
             xyz_from_peaks = peaks[:, [1, 0, 2]] * scan_dim / target.shape[:3]
             elem_from_peaks = peaks[:, 3]
