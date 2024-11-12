@@ -1,7 +1,6 @@
 import jax
 import jax.numpy as jnp
-import flax.linen as lnn
-import torch.nn as tnn
+import flax.linen as nn
 
 import ml_collections
 
@@ -12,27 +11,23 @@ from typing import Callable, Union
 
 def get_activation(
     activation: str,
-    code: str
 ) -> Callable[[jnp.ndarray], jnp.ndarray]:
     """Get the activation function based on the name and code."""
     if activation.lower() == "relu":
-        return lnn.relu if code == "jax" else tnn.ReLU
+        return nn.relu
     elif activation.lower() == "sigmoid":
-        return lnn.sigmoid if code == "jax" else tnn.Sigmoid
+        return nn.sigmoid
     elif activation.lower() == "tanh":
-        return lnn.tanh if code == "jax" else tnn.Tanh
+        return nn.tanh
     elif activation.lower() == "leaky_relu":
-        return lnn.leaky_relu if code == "jax" else tnn.LeakyReLU
-    elif activation.lower() == "gelu":
-        return lnn.gelu if code == "jax" else tnn.GELU
+        return nn.leaky_relu
     else:
-        raise ValueError(f"Activation {activation} not supported.")
-
+        raise ValueError(f"Activation {activation} not recognized.")
 
 
 def create_model(
     config: ml_collections.ConfigDict
-) -> Union[lnn.Module, tnn.Module]:
+) -> Union[nn.Module]:
     """Create a model based on the configuration."""
     if config.model_name.lower() == "unet":
         model = UNet(

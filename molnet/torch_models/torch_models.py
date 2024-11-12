@@ -3,7 +3,7 @@ from torch import nn
 
 from typing import Sequence, Callable, List
 
-from molnet.torch_models.layers import ResBlock, AttentionBlock3D
+from molnet.torch_models.torch_layers import ResBlock, AttentionBlock3D
 
 class AttentionUNet(nn.Module):
     def __init__(
