@@ -15,6 +15,8 @@ def get_root_dir(local_scratch=None) -> Optional[str]:
         return None
     elif 'd22' in hostname:
         return "/l/data/molnet/atom_maps/"
+    elif 'GHL96JPW91' in hostname:
+        return "/Users/kurkil1/data/atom_maps"
     else:
         return '/scratch/project_2005247/lauri/data/atom_maps'
     return None
