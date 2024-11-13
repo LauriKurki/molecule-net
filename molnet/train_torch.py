@@ -5,7 +5,7 @@ import torch
 import lightning
 from lightning.pytorch import loggers, callbacks
 
-from molnet.data import input_pipeline
+from molnet.data import input_pipeline_wds
 from molnet.lightning_trainers import LightningMolnet
 
 
@@ -48,7 +48,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
     model = LightningMolnet(config, workdir)
 
     # Set up data loaders
-    ds = input_pipeline.get_datasets(
+    ds = input_pipeline_wds.get_datasets(
         config=config,
     )
     train_loader = ds["train"]
