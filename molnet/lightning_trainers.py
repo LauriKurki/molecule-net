@@ -36,7 +36,7 @@ class LightningMolnet(L.LightningModule):
         # Compute the loss
         z_slices = x.shape[-1]
         loss = F.mse_loss(pred, atom_map[..., -z_slices:])
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=x.shape[0])
+        self.log('train_loss', loss, logger=True, batch_size=x.shape[0])
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -53,7 +53,7 @@ class LightningMolnet(L.LightningModule):
         # Compute the loss
         z_slices = x.shape[-1]
         loss = F.mse_loss(pred, atom_map[..., -z_slices:])
-        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=x.shape[0])
+        self.log('val_loss', loss, logger=True, batch_size=x.shape[0])
         return loss
     
     def predict_step(self, batch, batch_idx, dataloader_idx):
@@ -76,12 +76,12 @@ class LightningMolnet(L.LightningModule):
         x = x.cpu().numpy()
         y = y.cpu().numpy()
         pred = pred.detach().cpu().numpy()
+        xyz = xyz.cpu().numpy()
 
         if self.config.batch_order == "torch":
             x = np.transpose(x, (0, 2, 3, 4, 1))
             y = np.transpose(y, (0, 2, 3, 4, 1))
             pred = np.transpose(pred, (0, 2, 3, 4, 1))
-            xyz = np.asarray(xyz)
             attention_maps = [a.detach().cpu().numpy() for a in attention_maps]
 
         # Save predictions
@@ -104,7 +104,7 @@ class LightningMolnet(L.LightningModule):
         step = self.global_step
 
         # Predict, if required
-        if step == self.config.predict_every_steps:
+        if step % self.config.predict_every_steps == 0:
             for i in range(self.config.predict_num_batches):
                 # get batch from validation dataloader
                 batch = next(self.trainer.val_dataloaders)

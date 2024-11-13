@@ -33,7 +33,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
 
     # Set up trainer module
     trainer = lightning.Trainer(
-        accelerator="cpu",
+        accelerator="gpu",
         default_root_dir=workdir,
         logger=tensorboard_logger,
         callbacks=trainer_callbacks,
@@ -48,7 +48,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
     model = LightningMolnet(config, workdir)
 
     # Set up data loaders
-    ds = input_pipeline.get_pseudodatasets(
+    ds = input_pipeline.get_datasets(
         config=config,
     )
     train_loader = ds["train"]

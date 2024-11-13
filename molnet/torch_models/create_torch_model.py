@@ -43,6 +43,10 @@ def create_model(
             attention_activation=get_activation(config.attention_activation),
             return_attention_maps=config.return_attention_maps
         )
+    elif config.model_name.lower() == "eq-attention-unet":
+        raise NotImplementedError(f"Model {config.model_name.lower()} not implemented.")
+    else:
+        raise ValueError(f"Invalid model name {config.model_name.lower()}.")
 
     
     return model

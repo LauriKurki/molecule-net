@@ -18,8 +18,7 @@ class TestInputPipeline(absltest.TestCase):
         print(config)
 
         rng = jax.random.PRNGKey(0)
-        datarng, rng = jax.random.split(rng)
-        datasets = input_pipeline.get_pseudodatasets(datarng, config)
+        datasets = input_pipeline.get_datasets(config)
 
         trainset = datasets["train"]
 
