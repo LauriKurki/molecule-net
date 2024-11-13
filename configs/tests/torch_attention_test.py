@@ -19,7 +19,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.batch_order = "torch"
 
     config.train_molecules = (0, 1000)
-    config.val_molecules = (1000, 2000)
+    config.val_molecules = (0, 1000)
 
     config.model = ml_collections.ConfigDict()
     config.model.model_name = "torch-attention-unet"

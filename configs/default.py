@@ -5,6 +5,7 @@ def get_config() -> ml_collections.ConfigDict:
     config = ml_collections.ConfigDict()
     config.debug = False
     config.root_dir = None
+    config.num_workers = None
 
     # Dataset
     config.dataset = "edafm"
@@ -13,6 +14,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.max_atoms = 54
     config.train_molecules = (0, 230000)
     config.val_molecules = (230000, 264000)
+    config.chunk_size = 1000
     config.shuffle_datasets = True
     config.batch_size = 32
     config.batch_order = "jax" # Order of the batch dimensions
