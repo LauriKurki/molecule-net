@@ -53,9 +53,9 @@ def generate_atom_maps(
 
             yield {
                 "__key__": f"{sample_key:06d}",
-                "x": x.astype(np.float16),
-                "xyz": xyz.astype(np.float16),
-                "atom_map": atom_map.astype(np.float16),
+                "x.npy": x.astype(np.float16),
+                "xyz.npy": xyz.astype(np.float16),
+                "map.npy": atom_map.astype(np.float16),
             }
 
     with wds.TarWriter(output_dir) as sink:
