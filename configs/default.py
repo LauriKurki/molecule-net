@@ -5,7 +5,7 @@ def get_config() -> ml_collections.ConfigDict:
     config = ml_collections.ConfigDict()
     config.debug = False
     config.root_dir = None
-    config.num_workers = None
+    config.num_workers = 8
 
     # Dataset
     config.dataset = "edafm"
