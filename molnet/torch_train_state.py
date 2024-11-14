@@ -8,4 +8,4 @@ class State:
     best_model: Any
     best_optimizer: Any
     step_for_best_model: int
-    metrics_for_best_model: MetricCollection
+    metrics_for_best_model: float

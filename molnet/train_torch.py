@@ -96,14 +96,14 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
     # Checkpointing
     checkpoint_path = os.path.join(workdir, "checkpoints")
     checkpoint_hook = torch_hooks.CheckpointHook(checkpoint_path, max_to_keep=1)
-    step, best_metrics = checkpoint_hook.restore_or_init(model, optimizer)
+    step, best_validation_loss = checkpoint_hook.restore_or_init(model, optimizer)
 
     # Create dict for storing best model
     best_state = torch_train_state.State(
         best_model=model,
         best_optimizer=optimizer,
         step_for_best_model=step,
-        metrics_for_best_model=best_metrics
+        metrics_for_best_model=best_validation_loss
     )
 
     # Evaluation hook
@@ -123,8 +123,8 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
 
         if step % config.eval_every_steps == 0:
             logging.info(f"Step {step}: Evaluating model.")
-            best_state, eval_loss = eval_hook(model, optimizer, step, best_state)
-            checkpoint_hook(model, optimizer, eval_loss, step, best_state)
+            best_state, val_loss = eval_hook(model, optimizer, step, best_state)
+            checkpoint_hook(model, optimizer, step, val_loss, best_state)
 
         # Get batch
         try:
