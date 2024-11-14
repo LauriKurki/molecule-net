@@ -4,14 +4,15 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from clu import platform
+#from clu import platform
 from ml_collections import config_flags
 
-import jax
+#import jax
 import torch
-import tensorflow as tf
+#import tensorflow as tf
 
-from molnet import train, train_torch
+#from molnet import train
+from molnet import train_torch
 from configs import root_dirs
 
 FLAGS = flags.FLAGS
@@ -33,7 +34,7 @@ def main(argv):
 
         # Hide any GPUs from TensorFlow. Otherwise TF might reserve memory and make
         # it unavailable to PyTorch.
-        tf.config.experimental.set_visible_devices([], 'GPU')
+       #tf.config.experimental.set_visible_devices([], 'GPU')
 
         # Check if CUDA is available
         logging.info(f"Training on cuda: {torch.cuda.is_available()} -- {torch.cuda.device_count()} devices.")
