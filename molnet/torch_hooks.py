@@ -12,7 +12,7 @@ import torchmetrics
 from molnet import train_torch
 from molnet import torch_train_state
 
-from typing import Any, Dict, Callable
+from typing import Any, Dict, Callable, Tuple
 
 @dataclass
 class TrainMetricsLoggingHook:
@@ -48,9 +48,10 @@ class CheckpointHook:
         self.max_to_keep = max_to_keep
         os.makedirs(checkpoint_path, exist_ok=True)
 
-    def restore_or_init(self, model, optimizer):
+    def restore_or_init(self, model, optimizer) -> Tuple[int, float]:
         """
         Restore the model and optionally the optimizer state if a checkpoint exists.
+        Return step number and validation loss.
         """
         checkpoints = self._get_existing_checkpoints()
         if len(checkpoints) > 0:
@@ -71,8 +72,8 @@ class CheckpointHook:
         self,
         model: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        validation_loss: float,
         step: int,
+        validation_loss: float,
         best_state: Dict[str, Any]
     ):
         """
@@ -130,18 +131,16 @@ class EvaluationHook:
         optimizer: torch.optim.Optimizer,
         step: int,
         best_state: torch_train_state.State,
-    ):
+    ) -> Tuple[torch_train_state.State, float]:
         """
         Evaluate the model and log the metrics.
         """
         metrics = self.evaluate_model_fn(model)
-        metrics = metrics.compute()
+        eval_metrics = metrics.compute()
 
-        self.writer.add_scalars(
-            "eval",
-            {
-                "mse": metrics,
-            },
+        self.writer.add_scalar(
+            "Loss/val",
+            eval_metrics,
             step
         )
 
@@ -162,4 +161,4 @@ class EvaluationHook:
 
             logging.info(f"New best model found at step {step}.")
             
-        return best_state, metrics
+        return best_state, eval_metrics
