@@ -11,6 +11,7 @@ import torchmetrics
 
 from molnet import train_torch
 from molnet import torch_train_state
+from molnet import graphics
 
 from typing import Any, Dict, Callable, Tuple
 
@@ -36,6 +37,8 @@ class TrainMetricsLoggingHook:
         metrics.reset()
 
         self.writer.flush()
+
+        return metrics
     
 
 @dataclass
@@ -93,8 +96,8 @@ class CheckpointHook:
         best_checkpoint_name = os.path.join(self.checkpoint_path, "checkpoint_best.pth")
         torch.save({
             "step": best_state.step_for_best_model,
-            "model_state_dict": best_state.best_model.state_dict(),
-            "optimizer_state_dict": best_state.best_optimizer.state_dict(),
+            "model_state_dict": best_state.best_model,
+            "optimizer_state_dict": best_state.best_optimizer,
             "validation_loss": best_state.metrics_for_best_model,
         }, best_checkpoint_name)
 
@@ -106,7 +109,6 @@ class CheckpointHook:
         Get the list of existing checkpoint files sorted by epoch number.
         """
         checkpoints = glob(os.path.join(self.checkpoint_path, "checkpoint_*.pth"))
-        print(checkpoints)
         checkpoints.sort(key=lambda x: x.split("_")[-1].split(".")[0])
         return checkpoints
 
@@ -162,3 +164,78 @@ class EvaluationHook:
             logging.info(f"New best model found at step {step}.")
             
         return best_state, eval_metrics
+
+
+@dataclass
+class PredictionHook:
+    workdir: str
+    predict_fn: Callable
+    peak_threshold: float
+
+    def __call__(
+        self,
+        model: torch.nn.Module,
+        num_batches: int,
+        step: int,
+        final: bool,
+    ):
+        """
+        Make predictions using the model and log the predictions.
+        """
+        # Create the output directory
+        output_dir = os.path.join(
+            self.workdir,
+            "predictions",
+            f"final_step_{step}" if final else f"step_{step}"
+        )  
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Predict on the test set
+        (
+            inputs, targets, preds, xyzs, losses
+        ) = self.predict_fn(
+            model,
+            num_batches
+        )
+
+        # Transfer everything back to the CPU and numpy
+        inputs = inputs.cpu().numpy()
+        targets = targets.cpu().numpy()
+        preds = preds.detach().cpu().numpy()
+        xyzs = xyzs.cpu().numpy()
+
+        # transpose the inputs, targets and preds so that channel dimension is last
+        inputs = inputs.transpose(0, 2, 3, 4, 1)
+        targets = targets.transpose(0, 2, 3, 4, 1)
+        preds = preds.transpose(0, 2, 3, 4, 1)
+
+        # Write predictions in simplified format (sum over heights and species)
+        inputs_summed = inputs.sum(axis=(3, 4))[..., None]
+        preds_summed = preds.sum(axis=(3, 4))[..., None]
+        targets_summed = targets.sum(axis=(3, 4))[..., None]
+
+        # scale everything to [0, 1] after shifting to positive values
+        inputs_summed = inputs_summed - inputs_summed.min()
+        preds_summed = preds_summed - preds_summed.min()
+        targets_summed = targets_summed - targets_summed.min()
+
+        inputs_summed = inputs_summed / inputs_summed.max()
+        preds_summed = preds_summed / preds_summed.max()
+        targets_summed = targets_summed / targets_summed.max()
+
+        assert inputs_summed.ndim == 4, inputs_summed.shape # [num_samples, nX, nY, 1]
+        assert preds_summed.ndim == 4, preds_summed.shape # [num_samples, nX, nY, 1]
+        assert targets_summed.ndim == 4, targets_summed.shape # [num_samples, nX, nY, 1]
+
+        # Write detailed predictions
+        graphics.save_predictions(
+            inputs, targets, preds, losses, output_dir
+        )
+
+        graphics.save_simple_predictions(
+            inputs_summed, targets_summed, preds_summed, output_dir
+        )
+
+        graphics.save_predictions_as_molecules(
+            inputs, targets, preds, xyzs, output_dir, peak_threshold=self.peak_threshold
+        )

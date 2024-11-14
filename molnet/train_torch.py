@@ -23,6 +23,38 @@ from typing import Tuple
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
+def predict_model(
+    model: torch.nn.Module,
+    dataloader: torch.utils.data.DataLoader,
+    num_batches: int
+):
+    model.eval()
+
+    inputs = []
+    predictions = []
+    targets = []
+    losses = []
+    xyzs = []
+
+    with torch.no_grad():
+        for i in range(num_batches):
+            batch = next(dataloader)
+            batch = [b.to(device) for b in batch]
+            x, y, xyz = batch
+            y_pred = model(x)
+            loss_per_sample = torch.nn.functional.mse_loss(y_pred, y, reduction="none")
+            loss = loss_per_sample.mean(dim=(1, 2, 3, 4))
+
+            inputs.append(x)
+            predictions.append(y_pred)
+            targets.append(y)
+            losses.append(loss)
+            xyzs.append(xyz)
+
+    return [torch.cat(t) for t in [inputs, targets, predictions, xyzs, losses]]
+
+
 def evaluate_model(
     model: torch.nn.Module,
     dataloader: torch.utils.data.DataLoader,
@@ -30,13 +62,14 @@ def evaluate_model(
 ):
     model.eval()
 
-    metrics = torchmetrics.MeanSquaredError().to(device)
-    for i in range(num_eval_steps):
-        batch = next(dataloader)
-        batch = [b.to(device) for b in batch]
-        x, y, xyz = batch
-        y_pred = model(x)
-        metrics.update(y_pred, y)
+    with torch.no_grad():
+        metrics = torchmetrics.MeanSquaredError().to(device)
+        for i in range(num_eval_steps):
+            batch = next(dataloader)
+            batch = [b.to(device) for b in batch]
+            x, y, xyz = batch
+            y_pred = model(x)
+            metrics.update(y_pred, y)
 
     return metrics
 
@@ -100,8 +133,8 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
 
     # Create dict for storing best model
     best_state = torch_train_state.State(
-        best_model=model,
-        best_optimizer=optimizer,
+        best_model=model.state_dict(),
+        best_optimizer=optimizer.state_dict(),
         step_for_best_model=step,
         metrics_for_best_model=best_validation_loss
     )
@@ -116,6 +149,18 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
         writer
     )
 
+    # Prediction hook
+    prediction_hook = torch_hooks.PredictionHook(
+        workdir=workdir,
+        predict_fn=lambda model, num_batches: predict_model(
+            model,
+            datasets['val'],
+            num_batches
+        ),
+        peak_threshold=config.peak_threshold,
+    )
+
+
     # Training loop
     logging.info(f"Starting training at step {step} / {config.num_train_steps}.")
 
@@ -125,6 +170,10 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
             logging.info(f"Step {step}: Evaluating model.")
             best_state, val_loss = eval_hook(model, optimizer, step, best_state)
             checkpoint_hook(model, optimizer, step, val_loss, best_state)
+
+        if step % config.predict_every_steps == 0:
+            logging.info(f"Step {step}: Predicting model.")
+            prediction_hook(model, config.predict_num_batches, step, final=False)
 
         # Get batch
         try:
@@ -139,8 +188,10 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
             logging.info(
                 "End of dataset. This should not happen since dataset is infinite."
             )
+            break
 
         # Train model
+        model.train()
         loss = train_step(model, optimizer, batch, train_metrics)
 
         logging.log_first_n(
