@@ -21,23 +21,21 @@ class TrainMetricsLoggingHook:
 
     def __call__(
         self,
-        train_metrics: torchmetrics.Metric,
+        metrics: torchmetrics.Metric,
         step: int
     ):
         """Logs training metrics to tensorboard."""
-        train_metrics = train_metrics.compute()
+        train_metrics = metrics.compute()
 
-        self.writer.add_scalars(
-            self.prefix,
-            {
-                "mse": train_metrics,
-            },
+        self.writer.add_scalar(
+            "Loss/train",
+            train_metrics,
             step
         )
+        logging.info(f"Step: {step}, train loss: {train_metrics:.2e}")
+        metrics.reset()
 
         self.writer.flush()
-
-        return torchmetrics.MeanSquaredError().to(train_torch.device)
     
 
 @dataclass
