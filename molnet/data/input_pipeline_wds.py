@@ -8,7 +8,7 @@ import ml_collections
 from typing import List, Tuple, Sequence, Dict
 
 
-def get_datasets(config: ml_collections):
+def get_datasets(config: ml_collections.ConfigDict):
     filenames = sorted(os.listdir(config.root_dir))
     filenames = [
         os.path.join(config.root_dir, f)
@@ -86,6 +86,11 @@ def make_sample(
     xyz = sample["xyz.npy"]
     atom_map = sample["map.npy"]
 
+    # cast to float32
+    x = x.astype(np.float32)
+    xyz = xyz.astype(np.float32)
+    atom_map = atom_map.astype(np.float32)
+
     # Normalize x to 0 mean, 1 std.
     xmean = np.mean(x, axis=(1, 2), keepdims=True)
     xstd = np.std(x, axis=(1, 2), keepdims=True)
@@ -93,12 +98,16 @@ def make_sample(
 
     # Add noise to images
     if noise_std > 0:
-        x = x + np.random.uniform(-1, 1, size=x.shape) * noise_std
+        x = x + np.random.uniform(-1, 1, size=x.shape).astype(x.dtype) * noise_std
     
     # Add channel dimension
     x = x[None, ...]
 
     # Pad xyz to max_atoms
     xyz = np.pad(xyz, [[0, max_atoms - xyz.shape[0]], [0, 0]])
+
+    # get z slices from x and reshape atom_map
+    z_slices = x.shape[-1]
+    atom_map = atom_map[..., -z_slices:]
 
     return x, atom_map, xyz

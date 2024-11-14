@@ -23,12 +23,10 @@ class LightningMolnet(L.LightningModule):
         self.save_hyperparameters(self.config.to_dict())
 
     def training_step(self, batch, batch_idx):
-        # Convert numpy arrays to torch tensors
-        batch = jax.tree_util.tree_map(torch.from_numpy, batch)
-        batch = self.transfer_batch_to_device(batch, self.device, batch_idx)
+       # batch = self.transfer_batch_to_device(batch, self.device, batch_idx)
 
         # Extract the inputs and targets
-        x, atom_map, xyz = batch['images'], batch['atom_map'], batch['xyz']
+        x, atom_map, xyz = batch
 
         # Forward pass
         pred = self.model(x)
@@ -36,16 +34,14 @@ class LightningMolnet(L.LightningModule):
         # Compute the loss
         z_slices = x.shape[-1]
         loss = F.mse_loss(pred, atom_map[..., -z_slices:])
-        self.log('train_loss', loss, logger=True, batch_size=x.shape[0])
+        self.log('train_loss', loss, logger=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        # Convert numpy arrays to torch tensors
-        batch = jax.tree_util.tree_map(torch.from_numpy, batch)
-        batch = self.transfer_batch_to_device(batch, self.device, batch_idx)
+        #batch = self.transfer_batch_to_device(batch, self.device, batch_idx)
 
         # Extract the inputs and targets
-        x, atom_map, xyz = batch['images'], batch['atom_map'], batch['xyz']
+        x, atom_map, xyz = batch
 
         # Forward pass
         pred = self.model(x)
@@ -53,16 +49,15 @@ class LightningMolnet(L.LightningModule):
         # Compute the loss
         z_slices = x.shape[-1]
         loss = F.mse_loss(pred, atom_map[..., -z_slices:])
-        self.log('val_loss', loss, logger=True, batch_size=x.shape[0])
+        self.log('val_loss', loss, logger=True)
         return loss
     
     def predict_step(self, batch, batch_idx, dataloader_idx):
         # Convert numpy arrays to torch tensors
-        batch = jax.tree_util.tree_map(torch.from_numpy, batch)
         batch = self.transfer_batch_to_device(batch, self.device, batch_idx)
 
         # Extract the inputs and targets
-        x, atom_map, xyz = batch['images'], batch['atom_map'], batch['xyz']
+        x, atom_map, xyz = batch
         z_slices = x.shape[-1]
 
         # Forward pass
