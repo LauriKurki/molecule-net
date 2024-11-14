@@ -8,7 +8,7 @@
 
 source /scratch/project_2005247/lauri/venvs/molnet/bin/activate
 
-python atom_map_generator.py \
+python wds_atom_map_generator.py \
     --data_dir /scratch/project_2005247/lauri/data/afm.h5 \
     --output_dir /scratch/project_2005247/lauri/data/atom_maps/ \
     --chunk_size 1000

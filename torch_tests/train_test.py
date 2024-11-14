@@ -3,7 +3,6 @@ import os
 
 import torch
 torch.set_float32_matmul_precision('medium')
-import tensorflow as tf
 
 from configs.tests import torch_attention_test
 from molnet import train_torch as train
@@ -27,10 +26,6 @@ class TrainTest(parameterized.TestCase):
         config_name
     ):
 
-        #Hide any GPUs from TensorFlow. Otherwise TF might reserve memory and make
-        # it unavailable to JAX.
-        tf.config.experimental.set_visible_devices([], 'GPU')
-        
         # Check if CUDA is available
         logging.info(f"Training on cuda: {torch.cuda.is_available()} -- {torch.cuda.device_count()} devices.")
 

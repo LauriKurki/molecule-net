@@ -6,23 +6,22 @@ build-backend = "setuptools.build_meta"
 name = "molnet"
 version = "0.0.0"
 dependencies = [
-    "jax",
     "matplotlib",
     "numpy",
-    "tensorflow-cpu==2.13.0",
-    "clu==0.0.9",
-    "h5py",
     "absl-py",
-    "optax",
-    "dm-haiku",
-    "flax",
     "tqdm",
     "ase",
     "scipy",
     "scikit-image",
-    "torch==2.5.0",
+    "torch",
     "torchvision",
-    "torchaudio"
+    "torchaudio",
+    "torchsummary",
+    "torchmetrics",
+    "tensorboard",
+    "pyyaml",
+    "ml-collections",
+    "webdataset"
 ]
 
 [tool.setuptools.packages]

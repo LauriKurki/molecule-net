@@ -1,5 +1,4 @@
 import numpy as np
-import jax.numpy as jnp
 from skimage import feature
 
 from absl import logging
@@ -30,10 +29,10 @@ NUMBER_TO_COLOR = {
 
 
 def save_predictions(
-    inputs: jnp.ndarray,
-    targets: jnp.ndarray,
-    preds: jnp.ndarray,
-    losses: jnp.ndarray,
+    inputs: np.ndarray,
+    targets: np.ndarray,
+    preds: np.ndarray,
+    losses: np.ndarray,
     outdir: str,
     start_save_idx: int = 0,
 ):
@@ -78,8 +77,8 @@ def save_predictions(
         for i in range(5):
             height = i*2
             axs_input[i].imshow(inp[..., height, 0], cmap='gray')
-            ps = axs_pred_sum[i].imshow(jnp.sum(pred[..., height, :], axis=-1), cmap='gray')
-            ts = axs_target_sum[i].imshow(jnp.sum(target[..., height, :], axis=-1), cmap='gray')
+            ps = axs_pred_sum[i].imshow(np.sum(pred[..., height, :], axis=-1), cmap='gray')
+            ts = axs_target_sum[i].imshow(np.sum(target[..., height, :], axis=-1), cmap='gray')
         
             for ax in [axs_input[i], axs_pred_sum[i], axs_target_sum[i]]:
                 ax.set_aspect('equal')
@@ -107,9 +106,9 @@ def save_predictions(
 
 
 def save_simple_predictions(
-    inputs: jnp.ndarray,
-    targets: jnp.ndarray,
-    preds: jnp.ndarray,
+    inputs: np.ndarray,
+    targets: np.ndarray,
+    preds: np.ndarray,
     outdir: str,
     start_save_idx: int = 0,
 ):
@@ -144,8 +143,8 @@ def save_simple_predictions(
 
 
 def save_attention_maps(
-    inputs: jnp.ndarray,
-    attention_maps: List[jnp.ndarray],
+    inputs: np.ndarray,
+    attention_maps: List[np.ndarray],
     outdir: str,
     start_save_idx: int = 0,
 ):
@@ -180,10 +179,10 @@ def save_attention_maps(
 
 
 def save_predictions_as_molecules(
-    inputs: jnp.ndarray,
-    targets: jnp.ndarray,
-    preds: jnp.ndarray,
-    xyzs: jnp.ndarray,
+    inputs: np.ndarray,
+    targets: np.ndarray,
+    preds: np.ndarray,
+    xyzs: np.ndarray,
     outdir: str,
     scan_dim: np.ndarray = np.array([16, 16, 1]),
     z_cutoff: float = 1.0,
