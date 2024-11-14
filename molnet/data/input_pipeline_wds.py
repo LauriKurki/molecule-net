@@ -68,9 +68,9 @@ def get_datasets(config: ml_collections.ConfigDict):
 
         # We are using resampling for shards so the dataset is infinite.
         # We set an artificial epoch size.
-        loader = loader.with_epoch(
-            len(files_split) * config.chunk_size // config.batch_size
-        )
+        #loader = loader.with_epoch(
+        #    len(files_split) * config.chunk_size // config.batch_size
+        #)
 
         datasets[split] = iter(loader)
 
@@ -92,8 +92,8 @@ def make_sample(
     atom_map = atom_map.astype(np.float32)
 
     # Normalize x to 0 mean, 1 std.
-    xmean = np.mean(x, axis=(1, 2), keepdims=True)
-    xstd = np.std(x, axis=(1, 2), keepdims=True)
+    xmean = np.mean(x, axis=(0, 1), keepdims=True)
+    xstd = np.std(x, axis=(0, 1), keepdims=True)
     x = (x - xmean) / (xstd + 1e-9)
 
     # Add noise to images
