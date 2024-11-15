@@ -21,7 +21,13 @@ from molnet import torch_train_state
 
 from typing import Tuple
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+elif torch.mps.is_available():
+    device = torch.device("mps")
+    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+else:
+    device = torch.device("cpu")
 
 
 def predict_model(
