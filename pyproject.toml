@@ -21,7 +21,8 @@ dependencies = [
     "tensorboard",
     "pyyaml",
     "ml-collections",
-    "webdataset"
+    "webdataset",
+    "escnn",
 ]
 
 [tool.setuptools.packages]
