@@ -26,9 +26,9 @@ def build_mask(
     for k in product(range(sh[0]), range(sh[1])):
         r = sum((x - c)**2 for x in k)
         if r > t:
-            mask[..., *k, :] = math.exp((t - r) / sigma**2)
+            mask[..., k[0], k[1], :] = math.exp((t - r) / sigma**2)
         else:
-            mask[..., *k, :] = 1.
+            mask[..., k[0], k[1], :] = 1.
     return mask
 
 
