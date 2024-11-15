@@ -1,8 +1,3 @@
-import math
-import torch
-from torch import nn
-from torch.nn import functional as F
-
 import escnn
 from escnn import nn as enn
 
