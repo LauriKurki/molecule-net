@@ -6,6 +6,8 @@ from torch.nn import functional as F
 import escnn
 from escnn import nn as enn
 
+from molnet.escnn_models import InnerBatchNorm3D
+
 from typing import Union, Callable, Tuple
 
 
@@ -70,10 +72,10 @@ class EqConv3d(enn.EquivariantModule):
         self.out_type = c_out
 
         self.conv1 = enn.R3Conv(c_in, c_out, kernel_size=kernel_size, padding=padding)
-        self.bn1 = enn.InnerBatchNorm(c_out)
+        self.bn1 = InnerBatchNorm3D(c_out)
 
         self.conv2 = enn.R3Conv(c_out, c_out, kernel_size=kernel_size, padding=padding)
-        self.bn2 = enn.InnerBatchNorm(c_out)
+        self.bn2 = InnerBatchNorm3D(c_out)
 
         self.res_conv = enn.R3Conv(c_in, c_out, kernel_size=1, padding=0)
 
