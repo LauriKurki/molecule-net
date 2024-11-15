@@ -24,6 +24,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.val_molecules = (0, 1000)
 
     config.model = unet.get_model_config()
+    config.rotations = 4
     config.model.encoder_channels = [2, 4, 8]
     config.model.decoder_channels = [8, 4, 2]
 

@@ -1,3 +1,5 @@
+import time
+
 import torch
 import torch.nn as nn
 
@@ -139,26 +141,60 @@ class EquivariantUNet(nn.Module):
         )
 
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, timings: bool = False) -> torch.Tensor:
         # wrap input into geometric tensor
+        if timings:
+            torch.cuda.synchronize()
+            t0 = time.perf_counter()
         x = self.in_type(x)
-        
+
+        if timings:
+            torch.cuda.synchronize()
+            t1 = time.perf_counter()
         # mask input
         x = self.mask(x)
+        if timings:
+            torch.cuda.synchronize()
+            t2 = time.perf_counter()
 
         # convolve input
         x = self.in_conv(x)
+        if timings:
+            torch.cuda.synchronize()
+            t3 = time.perf_counter()
 
         # Encoder
         skips = []
-        for block, pooling in zip(self.encoder, self.pools):
-            x = block(x)
-            skips.append(x)
+        enc_timings = {}
+        for i, (block, pooling) in enumerate(zip(self.encoder, self.pools)):
+            if timings:
+                torch.cuda.synchronize()
+                enct1 = time.perf_counter()
 
+            x = block(x)
+            if timings:
+                torch.cuda.synchronize()
+                enct2 = time.perf_counter()
+            
+            skips.append(x)
             x = pooling(x)
+            if timings:
+                torch.cuda.synchronize()
+                enct3 = time.perf_counter()
+
+            if timings:
+                enc_timings[f"enc_{i}_conv"] = enct2 - enct1
+                enc_timings[f"enc_{i}_pool"] = enct3 - enct2
+
+        if timings:
+            torch.cuda.synchronize()
+            t4 = time.perf_counter()
 
         # Bottom
         x = self.bottom_block(x)
+        if timings:
+            torch.cuda.synchronize()
+            t5 = time.perf_counter()
 
         # Decoder
         for block, up in zip(self.decoder, self.upsamplings):
@@ -166,9 +202,27 @@ class EquivariantUNet(nn.Module):
             skip = skips.pop()
             x = enn.tensor_directsum([x, skip])
             x = block(x)
+        if timings:
+            torch.cuda.synchronize()
+            t6 = time.perf_counter()
 
         # Output
         x = self.out_conv(x)
+        if timings:
+            torch.cuda.synchronize()
+            t7 = time.perf_counter()
+
+        if timings:
+            wrap = t1 - t0
+            mask = t2 - t1
+            conv = t3 - t2
+            encoder = t4 - t3
+            bottom = t5 - t4
+            decoder = t6 - t5
+            output = t7 - t6
+            print(f"wrap: {wrap:.2e}, mask: {mask:.2e}, conv: {conv:.2e}, encoder: {encoder:.2e}, bottom: {bottom:.2e}, decoder: {decoder:.2e}, output: {output:.2e}")
+            for k, v in enc_timings.items():
+                print(f"{k}: {v:.2e}")
 
         # unwrap output from geometric tensor
         x = x.tensor

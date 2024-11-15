@@ -35,7 +35,6 @@ def predict_model(
     dataloader: torch.utils.data.DataLoader,
     num_batches: int
 ):
-    model.eval()
 
     inputs = []
     predictions = []
@@ -44,6 +43,7 @@ def predict_model(
     xyzs = []
 
     with torch.no_grad():
+        model.eval()
         for i in range(num_batches):
             batch = next(dataloader)
             batch = [b.to(device) for b in batch]
@@ -66,9 +66,9 @@ def evaluate_model(
     dataloader: torch.utils.data.DataLoader,
     num_eval_steps: int,
 ):
-    model.eval()
 
     with torch.no_grad():
+        model.eval()
         metrics = torchmetrics.MeanSquaredError().to(device)
         for i in range(num_eval_steps):
             batch = next(dataloader)

@@ -1,4 +1,6 @@
 import os
+import time
+
 from absl.testing import parameterized, absltest
 from absl import logging
 
@@ -36,7 +38,7 @@ class ModelTest(parameterized.TestCase):
 
             # Create the model
             self.model = create_model(config).to(device)
-            self.x = torch.ones((4, 1, 128, 128, 10), device=device)
+            self.x = torch.ones((8, 1, 128, 128, 10), device=device)
 
         def test_forward(
             self,
@@ -61,6 +63,20 @@ class ModelTest(parameterized.TestCase):
             # Backward pass
             loss.backward()
 
+        def test_timing(
+            self,
+        ):
+    
+            # Forward pass
+            for i in range(10):
+                t0 = time.perf_counter()
+                y = self.model(self.x, timings=True)
+                t1 = time.perf_counter()
+                loss = y.sum()
+                loss.backward()
+                t2 = time.perf_counter()
+
+                logging.info(f"Step {i} -- Forward: {t1-t0:.2f}s -- Backward: {t2-t1:.2f}s")
 
 if __name__ == "__main__":
     absltest.main()
