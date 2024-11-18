@@ -38,7 +38,7 @@ class ModelTest(parameterized.TestCase):
 
             # Create the model
             self.model = create_model(config).to(device)
-            self.x = torch.ones((8, 1, 128, 128, 10), device=device)
+            self.x = torch.ones((16, 1, 128, 128, 10), device=device)
 
         def test_forward(
             self,

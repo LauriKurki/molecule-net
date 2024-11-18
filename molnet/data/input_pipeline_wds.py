@@ -38,26 +38,28 @@ def get_datasets(config: ml_collections.ConfigDict):
 
     datasets = {}
     for split, files_split in files_by_split.items():
-        ds = wds.WebDataset(
-            files_split, resampled=True, shardshuffle=True
+        ds = wds.DataPipeline(
+            wds.SimpleShardList(files_split),
+
+            wds.shuffle(1000, seed=config.rng_seed),
+            wds.split_by_worker,
+
+            wds.tarfile_to_samples(),
+
+            wds.decode("torch"),
+
+            wds.map(
+                lambda x: make_sample(
+                    x,
+                    noise_std=config.noise_std,
+                    max_atoms=config.max_atoms
+                )
+            ),  
+
+            wds.shuffle(1000, seed=config.rng_seed),
+
+            wds.batched(config.batch_size),
         )
-
-        if config.shuffle_datasets:
-            ds = ds.shuffle(1000, seed=config.rng_seed)
-
-        # Decode bytes objects to torch tensors.
-        ds = ds.decode("torch")
-
-        # Apply image preprocessing and create sample (tuple)
-        ds = ds.map(
-            lambda x: make_sample(
-                x,
-                noise_std=config.noise_std,
-                max_atoms=config.max_atoms
-            )
-        )
-
-        ds = ds.batched(config.batch_size)
 
         loader = wds.WebLoader(
             ds, batch_size=None, num_workers=config.num_workers

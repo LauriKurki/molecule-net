@@ -34,6 +34,9 @@ class TestInputPipeline(absltest.TestCase):
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
             t0 = time.perf_counter()
 
+            if i == 100:
+                break
+
         print(f"Average time to get batch: {sum(times)/len(times)*1e3:.2f} ms")
 
 if __name__ == '__main__':
