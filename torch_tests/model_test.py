@@ -70,7 +70,7 @@ class ModelTest(parameterized.TestCase):
             # Forward pass
             for i in range(10):
                 t0 = time.perf_counter()
-                y = self.model(self.x, timings=True)
+                y = self.model(self.x)
                 t1 = time.perf_counter()
                 loss = y.sum()
                 loss.backward()
