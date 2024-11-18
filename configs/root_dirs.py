@@ -12,7 +12,7 @@ def get_root_dir(local_scratch=None) -> Optional[str]:
         return local_scratch
 
     if 'triton' in hostname:
-        return None
+        return '/scratch/phys/project/sin/lauri/data/atom_maps/'
     elif 'd22' in hostname:
         return "/l/data/molnet/atom_maps/"
     elif 'GHL96JPW91' in hostname:
