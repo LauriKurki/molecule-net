@@ -36,12 +36,12 @@ def create_scheduler(
 def print_summary(model):
     summary = {}
     total = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total number of trainable parameters: {total}")
+    logging.info(f"Total number of trainable parameters: {total}")
     for name, module in model.named_children():
         parameters = sum(p.numel() for p in module.parameters() if p.requires_grad)
         summary[name] = parameters
 
-        print(f"{name}: {parameters}")
+        logging.info(f"{name}: {parameters}")
 
 
     return summary
