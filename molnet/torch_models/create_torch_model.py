@@ -67,8 +67,8 @@ def create_model(
             output_channels=config.output_channels,
             encoder_channels=config.encoder_channels,
             decoder_channels=config.decoder_channels,
-            encoder_kernel_size=config.encoder_kernel_size[0],
-            decoder_kernel_size=config.decoder_kernel_size[0],
+            encoder_kernel_size=config.encoder_kernel_size,
+            decoder_kernel_size=config.decoder_kernel_size,
             conv_activation=get_equivariant_activation(config.conv_activation),
         )
     elif config.model_name.lower() == "torch-equiv-attention-unet":

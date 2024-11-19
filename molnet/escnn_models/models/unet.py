@@ -79,7 +79,7 @@ class EquivariantUNet(nn.Module):
                 gspace=self.gspace,
                 ch_in=encoder_in_channels[i],
                 ch_out=encoder_out_channels[i],
-                kernel_size=encoder_kernel_size[i],
+                kernel_size=encoder_kernel_size[i][0],
                 scalar_input=False,
                 scalar_output=False,
                 activation=conv_activation
@@ -97,7 +97,7 @@ class EquivariantUNet(nn.Module):
             gspace=self.gspace,
             ch_in=encoder_channels[-1],
             ch_out=encoder_channels[-1],
-            kernel_size=encoder_kernel_size[-1],
+            kernel_size=encoder_kernel_size[-1][0],
             scalar_input=False,
             scalar_output=False,
             activation=conv_activation
@@ -119,7 +119,7 @@ class EquivariantUNet(nn.Module):
                 gspace=self.gspace,
                 ch_in=decoder_in_channels[i]+skip_channels[-i-1],
                 ch_out=decoder_out_channels[i],
-                kernel_size=decoder_kernel_size[i],
+                kernel_size=decoder_kernel_size[i][0],
                 scalar_input=False,
                 scalar_output=False,
                 activation=conv_activation

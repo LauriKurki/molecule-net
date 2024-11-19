@@ -9,7 +9,6 @@ from absl import logging
 import torch
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
-from torchsummary import summary
 import torchmetrics
 import ml_collections
 
@@ -119,7 +118,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
     model = model.to(device)
 
     # Print model summary.
-    summary(model, (1, 128, 128, 10), batch_size=config.batch_size)
+    torch_utils.print_summary(model)
 
     # Create optimizer.
     optimizer = torch_utils.create_optimizer(config)(model.parameters(), lr=config.learning_rate)

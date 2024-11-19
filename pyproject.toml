@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "molnet"
 version = "0.0.0"
 dependencies = [
+    "jax",
+    "h5py",
     "matplotlib",
     "numpy",
     "absl-py",

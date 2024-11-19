@@ -1,3 +1,5 @@
+from absl import logging
+
 from torch import optim
 import ml_collections
 
@@ -29,3 +31,17 @@ def create_scheduler(
         )
     else:
         return None
+
+
+def print_summary(model):
+    summary = {}
+    total = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logging.info(f"Total number of trainable parameters: {total}")
+    for name, module in model.named_children():
+        parameters = sum(p.numel() for p in module.parameters() if p.requires_grad)
+        summary[name] = parameters
+
+        logging.info(f"{name}: {parameters}")
+
+
+    return summary
