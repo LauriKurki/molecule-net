@@ -5,14 +5,17 @@ from molnet.data import input_pipeline_wds
 from absl.testing import absltest
 
 from configs import root_dirs
-from configs.tests import torch_attention_test
+from configs.tests import attention_test
 
 
 class TestInputPipeline(absltest.TestCase):
     def test_input(self):
-        config = torch_attention_test.get_config()
+        config = attention_test.get_config()
         config.root_dir = root_dirs.get_root_dir()
         config.num_workers = 8
+
+        config.train_molecules = (0, 64)
+        config.val_molecules = (64, 96)
 
         print(config)
 
@@ -27,6 +30,7 @@ class TestInputPipeline(absltest.TestCase):
             x, y, xyz = batch
 
             print(f"Shapes: x: {x.shape}, y: {y.shape}, xyz: {xyz.shape}")
+            print(f"dtypes: x: {x.dtype}, y: {y.dtype}, xyz: {xyz.dtype}")
 
             t1 = time.perf_counter()
             times.append(t1 - t0)

@@ -46,7 +46,7 @@ def get_datasets(config: ml_collections.ConfigDict):
 
             wds.tarfile_to_samples(),
 
-            wds.decode("torch"),
+            wds.decode("l"),
 
             wds.map(
                 lambda x: make_sample(
@@ -62,7 +62,7 @@ def get_datasets(config: ml_collections.ConfigDict):
         )
 
         loader = wds.WebLoader(
-            ds, batch_size=None, num_workers=config.num_workers
+            ds, batch_size=None, num_workers=0, collate_fn=numpy_collate
         )
 
         # Unbatch, shuffle between workers, and batch again. Quite slow.
@@ -113,3 +113,7 @@ def make_sample(
     atom_map = atom_map[..., -z_slices:]
 
     return x, atom_map, xyz
+
+
+def numpy_collate(samples):
+    return [np.asarray(x) for x in samples]
