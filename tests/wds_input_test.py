@@ -22,26 +22,28 @@ class TestInputPipeline(absltest.TestCase):
 
         datasets = input_pipeline_wds.get_datasets(config)
 
-        trainset = datasets["train"]
+        trainloader = iter(datasets["train"])
 
         times = []
-        t0 = time.perf_counter()
-        for i, batch in enumerate(trainset):
+        for i in range(500):
+            t0 = time.perf_counter()
+            batch = next(trainloader)
+            t1 = time.perf_counter()
 
-            x, y, xyz = batch["images"], batch["atom_map"], batch["xyz"]
+            if isinstance(batch, dict):
+                x, y, xyz = batch["images"], batch["atom_map"], batch["xyz"]
+            else:
+                x, y, xyz = batch
 
             print(f"Shapes: x: {x.shape}, y: {y.shape}, xyz: {xyz.shape}")
             print(f"dtypes: x: {x.dtype}, y: {y.dtype}, xyz: {xyz.dtype}")
             print(f"x min: {x.min()}, x max: {x.max()}, x mean: {x.mean()}")
 
-            t1 = time.perf_counter()
+            if i < 5: continue
             times.append(t1 - t0)
 
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
-            t0 = time.perf_counter()
 
-            if i == 100:
-                break
 
         print(f"Average time to get batch: {sum(times)/len(times)*1e3:.2f} ms")
 
