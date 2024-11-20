@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from flax.training import train_state
 
 from molnet import graphics
-from molnet.data import input_pipeline
+from molnet.data import input_pipeline_wds
 from analyses.utils import load_from_workdir
 
 from typing import Optional, Dict, Tuple, List
@@ -39,8 +39,6 @@ def pred_fn(
         inputs,
         training=False,
     )
-    preds_z = preds.shape[-2]
-    targets = targets[..., -preds_z:, :]
 
     # mse
     mse = jnp.mean(jnp.square(targets - preds), axis=(1, 2, 3, 4))
@@ -53,7 +51,8 @@ def make_predictions(
     outputdir: str,
     num_batches: int,
     batch_size: Optional[int] = None,
-    peak_threshold: Optional[float] = 0.5
+    peak_threshold: Optional[float] = 0.5,
+    old: bool = False,
 ):
     """
     Make predictions for a model checkpoint.
@@ -65,20 +64,21 @@ def make_predictions(
     - batch_size `Optional[int]`: the batch size to use for prediction. Mainly for running on 
         local machine with less memory.
     - peak_threshold `Optional[float]`: the threshold (relative to max) for peak detection
+    - old `bool`: whether to update the loaded config to the new style
     """
     # Create the output directory
     os.makedirs(outputdir, exist_ok=True)
 
     # Load the model
-    state, config = load_from_workdir(workdir, return_attention=True)
+    state, config = load_from_workdir(workdir, return_attention=True, old=old)
     if batch_size is not None:
         config.batch_size = batch_size
 
     # Load the dataset
     rng = jax.random.PRNGKey(0)
     datarng, rng = jax.random.split(rng)
-    dataset = input_pipeline.get_datasets(
-        datarng, config
+    dataset = input_pipeline_wds.get_datasets(
+        config
     )["val"]
 
     # Make predictions
@@ -154,7 +154,9 @@ def main(argv):
         os.path.abspath(FLAGS.workdir),
         FLAGS.outputdir,
         FLAGS.num_batches,
-        FLAGS.batch_size
+        FLAGS.batch_size,
+        FLAGS.peak_threshold,
+        FLAGS.old,
     )
 
 
@@ -168,6 +170,7 @@ if __name__ == "__main__":
     flags.DEFINE_integer("num_batches", 1, "The number of batches to predict.")
     flags.DEFINE_integer("batch_size", None, "The batch size to use for prediction.")
     flags.DEFINE_bool("peak_threshold", 0.5, "The threshold (relative to max) for peak detection.")
+    flags.DEFINE_bool("old", False, "Whether to update the loaded config to the new style.")
 
     flags.mark_flags_as_required(["workdir"])
 

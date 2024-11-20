@@ -16,8 +16,8 @@ def get_config() -> ml_collections.ConfigDict:
     config.predict_num_batches_at_end_of_training = 1
     
     config.batch_size = 4
-    config.train_molecules = (0, 1000)
-    config.val_molecules = (1000, 2000)
+    config.train_molecules = (0, 64)
+    config.val_molecules = (64, 96)
 
     config.model = ml_collections.ConfigDict()
     config.model.model_name = "attention-unet"
