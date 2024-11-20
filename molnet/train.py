@@ -22,7 +22,7 @@ from clu import (
 )
 
 from molnet import utils, train_state, hooks, loss
-from molnet.data import input_pipeline
+from molnet.data import input_pipeline, input_pipeline_wds
 from molnet.models import create_model
 
 from typing import Any, Dict, Iterator, Tuple
@@ -71,7 +71,7 @@ def train_step(
         z_slices = preds.shape[-2]
         batch_loss = loss.mse(
             preds,
-            batch["atom_map"][..., -z_slices:, :]
+            batch["atom_map"]
         )
 
         return batch_loss, (preds, updates)
@@ -106,7 +106,7 @@ def eval_step(
     preds_z = preds.shape[-2]
     batch_loss = loss.mse(
         preds,
-        batch["atom_map"][..., -preds_z:, :]
+        batch["atom_map"]
     )
     return Metrics.single_from_model_output(
         loss=batch_loss,        
@@ -121,9 +121,9 @@ def evaluate_model(
     """Evaluate over all datasets."""
 
     eval_metrics = {}
-    for split, data_iterator in datasets.items():
+    for split, dataloader in datasets.items():
         split_metrics = Metrics.empty()
-
+        data_iterator = iter(dataloader)
         # Loop over graphs.
         for step in range(num_eval_steps):
             #batch = next(device_batch(data_iterator))
@@ -146,13 +146,11 @@ def predict_step(state, batch):
         inputs,
         training=False,
     )
-    preds_z = preds.shape[-2]
-    target = targets[..., -preds_z:, :]
     loss_by_image = jnp.mean(
-        (preds - target) ** 2,
+        (preds - targets) ** 2,
         axis=(1, 2, 3, 4),
     )
-    return inputs, target, preds, xyzs, loss_by_image
+    return inputs, targets, preds, xyzs, loss_by_image
 
 def predict_with_state(state, dataset, num_batches):
     losses = []
@@ -203,9 +201,10 @@ def train_and_evaluate(
     # Get datasets
     logging.info("Loading datasets.")
     rng = jax.random.PRNGKey(config.rng_seed)
-    rng, data_rng = jax.random.split(rng)
-    datasets = input_pipeline.get_datasets(data_rng, config)
-    train_ds = datasets["train"]
+    #rng, data_rng = jax.random.split(rng)
+    #datasets = input_pipeline.get_datasets(data_rng, config)
+    datasets = input_pipeline_wds.get_datasets(config)
+    train_ds = iter(datasets["train"])
 
     # Create model
     logging.info("Creating model.")
@@ -261,7 +260,7 @@ def train_and_evaluate(
         workdir=workdir,
         predict_fn=lambda state, num_batches: predict_with_state(
             state,
-            datasets["val"],
+            iter(datasets["val"]),
             num_batches,
         ),
         peak_threshold=config.peak_threshold,
@@ -275,6 +274,7 @@ def train_and_evaluate(
     report_progress = periodic_actions.ReportProgress(
         num_train_steps=config.num_train_steps,
         writer=writer,
+        every_secs=300,
     )
 
     # Training loop
