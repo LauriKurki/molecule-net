@@ -1,5 +1,6 @@
 import os
 import re
+import functools
 
 import jax.numpy as jnp
 import numpy as np
@@ -44,8 +45,9 @@ def get_datasets(config: ml_collections.ConfigDict):
     for split, files_split in files_by_split.items():
 
         ds = wds.DataPipeline(
+            #wds.ResampledShards(files_split),
             wds.SimpleShardList(files_split),
-            wds.shuffle(10),
+            wds.shuffle(100),
                 
             wds.split_by_worker,
 
@@ -54,10 +56,26 @@ def get_datasets(config: ml_collections.ConfigDict):
             wds.shuffle(1000),
 
             wds.decode('l'),
-            wds.
 
+            wds.map(
+                functools.partial(
+                    make_sample,
+                    noise_std=config.noise_std,
+                    max_atoms=config.max_atoms
+                )
+            ),
+
+            wds.shuffle(1000),
+            wds.batched(config.batch_size),
         )
 
+        #ds = wds.WebLoader(
+        #    ds,
+        #    batch_size=None,
+        #    shuffle=False,
+        #    num_workers=config.num_workers,
+        #    collate_fn=np_collate
+        #)
 
         # Unbatch, shuffle between workers, and batch again. Quite slow.
         #loader = loader.unbatched().shuffle(1000).batched(config.batch_size)
@@ -68,7 +86,7 @@ def get_datasets(config: ml_collections.ConfigDict):
         #    len(files_split) * config.chunk_size // config.batch_size
         #)
 
-        datasets[split] = loader
+        datasets[split] = ds
 
     return datasets
 
@@ -86,6 +104,7 @@ def make_sample(
     x = x.astype(np.float32)
     xyz = xyz.astype(np.float32)
     atom_map = atom_map.astype(np.float32)
+    
 
     # Normalize x to 0 mean, 1 std.
     xmean = np.mean(x, axis=(0, 1), keepdims=True)

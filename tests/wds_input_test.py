@@ -14,9 +14,9 @@ class TestInputPipeline(absltest.TestCase):
         config.root_dir = root_dirs.get_root_dir()
         config.num_workers = 8
 
-        config.batch_size = 16
-        config.train_molecules = (0, 50000)
-        config.val_molecules = (50000, 60000)
+        config.batch_size = 4
+        config.train_molecules = (0, 96)# (0, 50000)
+        config.val_molecules = (0, 96) #(50000, 60000)
 
         print(config)
 
@@ -25,12 +25,20 @@ class TestInputPipeline(absltest.TestCase):
         trainloader = iter(datasets["train"])
 
         times = []
-        for i in range(500):
+        for i in range(100):
             t0 = time.perf_counter()
-            batch = next(trainloader)
+            try:
+                batch = next(trainloader)
+            except StopIteration:
+                t1 = time.perf_counter()
+                print(f"Time to exit / restart: {(t1 - t0)*1e3:.2f} ms")
+                trainloader = iter(datasets["train"])
+                continue
+                #break
             t1 = time.perf_counter()
 
             if isinstance(batch, dict):
+                print(batch.keys())
                 x, y, xyz = batch["images"], batch["atom_map"], batch["xyz"]
             else:
                 x, y, xyz = batch
