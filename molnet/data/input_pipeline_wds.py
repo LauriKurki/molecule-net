@@ -62,7 +62,7 @@ def get_datasets(config: ml_collections.ConfigDict):
         )
 
         loader = wds.WebLoader(
-            ds, batch_size=None, num_workers=0, collate_fn=numpy_collate
+            ds, batch_size=None, num_workers=config.num_workers, collate_fn=numpy_collate
         )
         loader = loader.repeat()
 
