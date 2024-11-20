@@ -20,6 +20,8 @@ dependencies = [
     "scipy",
 	"webdataset",
 	"torch",
+    "torchaudio",
+    "torchvision",
 	"scikit-image",
     "tensorflow",
 	"tensorboard",
