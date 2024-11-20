@@ -38,33 +38,21 @@ def get_datasets(config: ml_collections.ConfigDict):
 
     datasets = {}
     for split, files_split in files_by_split.items():
-        ds = wds.DataPipeline(
-            wds.SimpleShardList(files_split),
-
-            wds.shuffle(1000, seed=config.rng_seed),
-            wds.split_by_worker,
-
-            wds.tarfile_to_samples(),
-
-            wds.decode("l"),
-
-            wds.map(
-                lambda x: make_sample(
-                    x,
-                    noise_std=config.noise_std,
-                    max_atoms=config.max_atoms
-                )
-            ),  
-
-            wds.shuffle(1000, seed=config.rng_seed),
-
-            wds.batched(config.batch_size),
+        ds = wds.WebDataset(
+            files_split,
+            resampled=True,
+            shardshuffle=True,
         )
+        ds = ds.shuffle(1000).decode("l").map(
+            lambda x: make_sample(
+                x, config.noise_std, config.max_atoms
+            )
+        )
+        ds = ds.batched(config.batch_size)
 
         loader = wds.WebLoader(
-            ds, batch_size=None, num_workers=config.num_workers, collate_fn=numpy_collate
+            ds, batch_size=None, num_workers=16, collate_fn=numpy_collate
         )
-        loader = loader.repeat()
 
         # Unbatch, shuffle between workers, and batch again. Quite slow.
         #loader = loader.unbatched().shuffle(1000).batched(config.batch_size)

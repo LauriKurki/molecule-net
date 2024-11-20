@@ -13,9 +13,9 @@ class TestInputPipeline(absltest.TestCase):
         config = attention_test.get_config()
         config.root_dir = root_dirs.get_root_dir()
         config.num_workers = 8
-
-        config.train_molecules = (0, 64)
-        config.val_molecules = (64, 96)
+        config.batch_size = 16
+        config.train_molecules = (0, 1536)
+        config.val_molecules = (1536, 2048)
 
         print(config)
 
