@@ -64,6 +64,7 @@ def get_datasets(config: ml_collections.ConfigDict):
         loader = wds.WebLoader(
             ds, batch_size=None, num_workers=0, collate_fn=numpy_collate
         )
+        loader = loader.repeat()
 
         # Unbatch, shuffle between workers, and batch again. Quite slow.
         #loader = loader.unbatched().shuffle(1000).batched(config.batch_size)
@@ -74,7 +75,7 @@ def get_datasets(config: ml_collections.ConfigDict):
         #    len(files_split) * config.chunk_size // config.batch_size
         #)
 
-        datasets[split] = iter(loader)
+        datasets[split] = loader
 
     return datasets
 
@@ -103,17 +104,28 @@ def make_sample(
         x = x + np.random.uniform(-1, 1, size=x.shape).astype(x.dtype) * noise_std
     
     # Add channel dimension
-    x = x[None, ...]
+    x = x[..., None]
 
     # Pad xyz to max_atoms
     xyz = np.pad(xyz, [[0, max_atoms - xyz.shape[0]], [0, 0]])
 
     # get z slices from x and reshape atom_map
-    z_slices = x.shape[-1]
+    z_slices = x.shape[-2]
     atom_map = atom_map[..., -z_slices:]
+
+    # move first axis to last
+    atom_map = np.transpose(atom_map, (1, 2, 3, 0))
 
     return x, atom_map, xyz
 
 
 def numpy_collate(samples):
-    return [np.asarray(x) for x in samples]
+    images = np.asarray(samples[0])
+    atom_maps = np.asarray(samples[1])
+    xyzs = np.asarray(samples[2])
+
+    return {
+        "images": images,
+        "atom_map": atom_maps,
+        "xyz": xyzs
+    }
