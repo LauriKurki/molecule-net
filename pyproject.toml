@@ -9,8 +9,7 @@ dependencies = [
     "jax",
     "matplotlib",
     "numpy",
-    "tensorflow==2.13.0",
-    "clu==0.0.9",
+    "clu",
     "h5py",
     "absl-py",
     "optax",
@@ -19,7 +18,11 @@ dependencies = [
     "tqdm",
     "ase",
     "scipy",
-	"webdataset"
+	"webdataset",
+	"torch",
+	"scikit-image",
+    "tensorflow",
+	"tensorboard",
 ]
 
 [tool.setuptools.packages]
