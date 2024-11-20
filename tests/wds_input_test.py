@@ -14,9 +14,9 @@ class TestInputPipeline(absltest.TestCase):
         config.root_dir = root_dirs.get_root_dir()
         config.num_workers = 8
 
-        config.batch_size = 4
-        config.train_molecules = (0, 96)# (0, 50000)
-        config.val_molecules = (0, 96) #(50000, 60000)
+        config.batch_size = 8
+        config.train_molecules = (0, 50000)
+        config.val_molecules = (50000, 60000)
 
         print(config)
 
@@ -51,6 +51,7 @@ class TestInputPipeline(absltest.TestCase):
             times.append(t1 - t0)
 
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
+            time.sleep(0.2)
 
 
         print(f"Average time to get batch: {sum(times)/len(times)*1e3:.2f} ms")
