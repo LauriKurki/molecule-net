@@ -2,7 +2,6 @@ import os
 import re
 import functools
 
-import jax.numpy as jnp
 import numpy as np
 import webdataset as wds
 import ml_collections
@@ -71,14 +70,16 @@ def get_datasets(config: ml_collections.ConfigDict):
             wds.batched(config.batch_size),
         )
 
-        ds = torch.utils.data.DataLoader(
+        #ds = torch.utils.data.DataLoader(
+        ds = wds.WebLoader(
             ds,
             batch_size=None,
             shuffle=False,
             num_workers=4,
-            collate_fn=jnp_collate,
-            prefetch_factor=2,
+            #prefetch_factor=2,
         )
+
+        ds = ds.repeat()
 
         # Unbatch, shuffle between workers, and batch again. Quite slow.
         #loader = loader.unbatched().shuffle(1000).batched(config.batch_size)
@@ -108,7 +109,6 @@ def make_sample(
     xyz = xyz.astype(np.float32)
     atom_map = atom_map.astype(np.float32)
     
-
     # Normalize x to 0 mean, 1 std.
     xmean = np.mean(x, axis=(0, 1), keepdims=True)
     xstd = np.std(x, axis=(0, 1), keepdims=True)
@@ -116,7 +116,7 @@ def make_sample(
 
     # Add noise to images
     if noise_std > 0:
-        x = x + np.random.uniform(-1, 1, size=x.shape) * noise_std
+        x = x + np.random.uniform(-1, 1, size=x.shape).astype(x.dtype) * noise_std
     
     # Add channel dimension
     x = x[..., None]
@@ -132,26 +132,3 @@ def make_sample(
     atom_map = np.transpose(atom_map, (1, 2, 3, 0))
 
     return x, atom_map, xyz
-
-
-def jnp_collate(samples):
-    images = jnp.asarray(samples[0], dtype=jnp.bfloat16)
-    atom_maps = jnp.asarray(samples[1], dtype=jnp.bfloat16)
-    xyzs = jnp.asarray(samples[2], dtype=jnp.bfloat16)
-
-    return {
-        "images": images,
-        "atom_map": atom_maps,
-        "xyz": xyzs
-    }
-
-def np_collate(samples):
-    images = np.asarray(samples[0])
-    atom_maps = np.asarray(samples[1])
-    xyzs = np.asarray(samples[2])
-
-    return {
-        "images": images,
-        "atom_map": atom_maps,
-        "xyz": xyzs
-    }

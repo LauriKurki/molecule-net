@@ -54,6 +54,17 @@ def device_batch(
         else:
             batch.append(b)
 
+
+def batch_to_numpy(batch_tuple):
+    batch_tuple = jax.tree_util.tree_map(lambda tensor: tensor.numpy(), batch_tuple)
+    batch = {
+        "images": batch_tuple[0],
+        "atom_map": batch_tuple[1],
+        "xyz": batch_tuple[2]
+    }
+    return batch
+
+
 @jax.jit
 def train_step(
     state: train_state.TrainState,
@@ -128,6 +139,7 @@ def evaluate_model(
         for step in range(num_eval_steps):
             #batch = next(device_batch(data_iterator))
             batch = next(data_iterator)
+            batch = batch_to_numpy(batch)
            
             # Compute metrics for this batch.
             batch_metrics = eval_step(state, batch)
@@ -161,6 +173,7 @@ def predict_with_state(state, dataset, num_batches):
     
     for i in range(num_batches):
         batch = next(dataset)
+        batch = batch_to_numpy(batch)
 
         (
             batch_inputs, batch_targets, batch_preds, batch_xyzs, batch_loss
@@ -208,11 +221,12 @@ def train_and_evaluate(
 
     # Create model
     logging.info("Creating model.")
-    x_init = next(train_ds)['images']
+    batch = next(train_ds)
+    batch = batch_to_numpy(batch)
     rng, init_rng = jax.random.split(rng)
     model = create_model(config.model)
-    
-    variables = model.init(init_rng, x_init, training=True)
+
+    variables = model.init(init_rng, batch["images"], training=True)
     params = variables["params"]
     batch_stats = variables["batch_stats"]
 
@@ -297,6 +311,8 @@ def train_and_evaluate(
         try:
             t0 = time.perf_counter()
             batch = next(train_ds)
+            batch = batch_to_numpy(batch)
+
             logging.log_first_n(
                 logging.INFO,
                 f"Time to load batch: {(time.perf_counter() - t0)*1e3:.2f} ms",
