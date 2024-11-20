@@ -7,6 +7,8 @@ import numpy as np
 import webdataset as wds
 import ml_collections
 
+import torch.utils.data
+
 from typing import List, Tuple, Sequence, Dict
 
 
@@ -69,13 +71,14 @@ def get_datasets(config: ml_collections.ConfigDict):
             wds.batched(config.batch_size),
         )
 
-        #ds = wds.WebLoader(
-        #    ds,
-        #    batch_size=None,
-        #    shuffle=False,
-        #    num_workers=config.num_workers,
-        #    collate_fn=np_collate
-        #)
+        ds = torch.utils.data.DataLoader(
+            ds,
+            batch_size=None,
+            shuffle=False,
+            num_workers=4,
+            collate_fn=jnp_collate,
+            prefetch_factor=2,
+        )
 
         # Unbatch, shuffle between workers, and batch again. Quite slow.
         #loader = loader.unbatched().shuffle(1000).batched(config.batch_size)
@@ -131,10 +134,10 @@ def make_sample(
     return x, atom_map, xyz
 
 
-def np_collate(samples):
-    images = np.asarray(samples[0], dtype=np.float32)
-    atom_maps = np.asarray(samples[1], dtype=np.float32)
-    xyzs = np.asarray(samples[2], dtype=np.float32)
+def jnp_collate(samples):
+    images = jnp.asarray(samples[0], dtype=jnp.bfloat16)
+    atom_maps = jnp.asarray(samples[1], dtype=jnp.bfloat16)
+    xyzs = jnp.asarray(samples[2], dtype=jnp.bfloat16)
 
     return {
         "images": images,
@@ -142,10 +145,10 @@ def np_collate(samples):
         "xyz": xyzs
     }
 
-def jnp_collate(samples):
-    images = jnp.asarray(samples[0])
-    atom_maps = jnp.asarray(samples[1])
-    xyzs = jnp.asarray(samples[2])
+def np_collate(samples):
+    images = np.asarray(samples[0])
+    atom_maps = np.asarray(samples[1])
+    xyzs = np.asarray(samples[2])
 
     return {
         "images": images,
