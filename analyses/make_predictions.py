@@ -82,8 +82,11 @@ def make_predictions(
     )["val"]
 
     # Make predictions
-    for i, batch in enumerate(dataset):
-        if i >= num_batches:
+    for i in range(num_batches):
+        try: 
+            batch = next(dataset)
+        except StopIteration:
+            print(f"Dataset ended")
             break
         inputs, targets, preds, attention_maps, xyzs, error = pred_fn(
             state,
@@ -169,7 +172,7 @@ if __name__ == "__main__":
     )
     flags.DEFINE_integer("num_batches", 1, "The number of batches to predict.")
     flags.DEFINE_integer("batch_size", None, "The batch size to use for prediction.")
-    flags.DEFINE_bool("peak_threshold", 0.5, "The threshold (relative to max) for peak detection.")
+    flags.DEFINE_float("peak_threshold", 0.5, "The threshold (relative to max) for peak detection.")
     flags.DEFINE_bool("old", False, "Whether to update the loaded config to the new style.")
 
     flags.mark_flags_as_required(["workdir"])
