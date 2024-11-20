@@ -77,7 +77,10 @@ def main(args) -> None:
     valid_indices = edafm.get_valid_indices(FLAGS.data_dir, atomic_numbers)
 
     # Calculate dataset shapes
-    n_mol = len(valid_indices)
+    if FLAGS.n_molecules is not None:
+        n_mol = FLAGS.n_molecules
+    else:
+        n_mol = len(valid_indices)
     logging.info(f"Total length of the dataset: {n_mol}")
 
     # Create output directory
@@ -102,7 +105,7 @@ def main(args) -> None:
     ]
 
     tqdm.contrib.concurrent.process_map(
-        _generate_atom_maps_wrapper, args_list, max_workers=8
+        _generate_atom_maps_wrapper, args_list, max_workers=FLAGS.num_workers
     )
 
 
@@ -113,5 +116,7 @@ if __name__=='__main__':
     flags.DEFINE_float('z_cutoff', 2.0, 'Z cutoff.')
     flags.DEFINE_float('map_resolution', 0.125, 'Map resolution.')
     flags.DEFINE_float('sigma', 0.2, 'Sigma.')
+    flags.DEFINE_integer('n_molecules', None, 'Number of molecules to generate.')
+    flags.DEFINE_integer('num_workers', 8, 'Number of workers.')
     
     app.run(main)
