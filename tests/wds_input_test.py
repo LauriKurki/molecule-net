@@ -27,10 +27,11 @@ class TestInputPipeline(absltest.TestCase):
         t0 = time.perf_counter()
         for i, batch in enumerate(trainset):
 
-            x, y, xyz = batch
+            x, y, xyz = batch["images"], batch["atom_map"], batch["xyz"]
 
             print(f"Shapes: x: {x.shape}, y: {y.shape}, xyz: {xyz.shape}")
             print(f"dtypes: x: {x.dtype}, y: {y.dtype}, xyz: {xyz.dtype}")
+            print(f"x min: {x.min()}, x max: {x.max()}, x mean: {x.mean()}")
 
             t1 = time.perf_counter()
             times.append(t1 - t0)
