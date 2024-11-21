@@ -9,7 +9,7 @@ dependencies = [
     "jax",
     "matplotlib",
     "numpy",
-    "clu",
+    "clu==0.0.9",
     "h5py",
     "absl-py",
     "optax",
@@ -18,12 +18,8 @@ dependencies = [
     "tqdm",
     "ase",
     "scipy",
-	"webdataset",
-	"torch",
-    "torchaudio",
-    "torchvision",
 	"scikit-image",
-    "tensorflow",
+    "tensorflow==2.13.0",
 	"tensorboard",
 ]
 
