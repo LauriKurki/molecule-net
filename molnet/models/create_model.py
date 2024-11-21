@@ -24,6 +24,18 @@ def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
     else:
         raise ValueError(f"Activation {activation} not supported.")
 
+def get_dtype(dtype: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
+    """Get the dtype based on the name."""
+    if dtype.lower() == "float16":
+        return jnp.float16
+    elif dtype.lower() == "bfloat16":
+        return jnp.bfloat16
+    elif dtype.lower() == "float32":
+        return jnp.float32
+    elif dtype.lower() == "float64":
+        return jnp.float64
+    else:
+        raise ValueError(f"Dtype {dtype} not supported.")
 
 
 def create_model(
@@ -38,6 +50,7 @@ def create_model(
         )
     elif config.model_name.lower() == "attention-unet":
         model = AttentionUNet(
+            dtype=get_dtype(config.dtype),
             output_channels=config.output_channels,
             encoder_channels=config.encoder_channels,
             decoder_channels=config.decoder_channels,

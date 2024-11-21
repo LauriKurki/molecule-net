@@ -6,6 +6,7 @@ def get_model_config() -> ml_collections.ConfigDict:
 
     config = ml_collections.ConfigDict()
     config.model_name = "Attention-UNet"
+    config.dtype = "float32"
     config.output_channels = 5
     config.encoder_channels = [16, 32, 64]
     config.decoder_channels = [64, 32, 16]

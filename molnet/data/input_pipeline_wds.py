@@ -102,7 +102,7 @@ def make_sample(
     sample: Dict[str, np.ndarray],
     noise_std: float,
     max_atoms: int,
-    interpolate_z: int = None
+    interpolate_z: int = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     x = sample["x.npy"]
     xyz = sample["xyz.npy"]

@@ -4,7 +4,7 @@ import flax.linen as nn
 
 from molnet.models.layers import ResBlock, AttentionBlock3D
 
-from typing import Sequence, Callable, List
+from typing import Sequence, Callable, List, Any
 
 class UNet(nn.Module):
 
@@ -77,6 +77,7 @@ class UNet(nn.Module):
 
 
 class AttentionUNet(nn.Module):
+    dtype: Any
     output_channels: int
     encoder_channels: Sequence[int]
     decoder_channels: Sequence[int]
@@ -89,13 +90,17 @@ class AttentionUNet(nn.Module):
 
     @nn.compact
     def __call__(self, x, training: bool):
+        x = x.astype(self.dtype)
+        
         attention_maps = []
         skips = []
+
         for i, (channels, kernels) in enumerate(zip(self.encoder_channels, self.encoder_kernel_size)):
             x = ResBlock(
                 channels,
                 (kernels[0], kernels[1], kernels[2]),
                 activation=self.conv_activation,
+                dtype=self.dtype,
                 name=f"encoder_{i}"
             )(x, training)
             skips.append(x)
@@ -107,6 +112,7 @@ class AttentionUNet(nn.Module):
             self.encoder_channels[-1],
             (self.encoder_kernel_size[-1][0], self.encoder_kernel_size[-1][1], self.encoder_kernel_size[-1][2]),
             activation=self.conv_activation,
+            dtype=self.dtype,
             name="bottom"
         )(x, training)
 
@@ -118,6 +124,7 @@ class AttentionUNet(nn.Module):
                 kernel_size=(3, 3, 3),
                 conv_activation=self.conv_activation,
                 attention_activation=self.attention_activation,
+                dtype=self.dtype,
                 name=f"attention_{i}"
             )(skips.pop(), x)
             attention_maps.append(map_i)
@@ -129,11 +136,12 @@ class AttentionUNet(nn.Module):
                 method='bilinear'
             )
 
-            x = jnp.concatenate([x, a], axis=-1)
+            x = jnp.concatenate([x, a], axis=-1, dtype=self.dtype)
             x = ResBlock(
                 channels,
                 (kernels[0], kernels[1], kernels[2]),
                 activation=self.conv_activation,
+                dtype=self.dtype,
                 name=f"decoder_{i}"
             )(x, training)
 
@@ -142,6 +150,7 @@ class AttentionUNet(nn.Module):
             self.output_channels,
             kernel_size=(1, 1, 1),
             padding='SAME',
+            dtype=self.dtype,
             name="output"
         )(x)
 
