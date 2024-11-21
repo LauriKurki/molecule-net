@@ -14,7 +14,6 @@ from typing import Dict, List, Sequence
 
 
 def get_datasets(
-    rng: chex.PRNGKey,
     config: ml_collections.ConfigDict,
 ) -> Dict[str, tf.data.Dataset]:
     """Loads datasets for each split."""
@@ -58,8 +57,8 @@ def get_datasets(
         )
 
         # Shuffle the dataset.
-        if config.shuffle_datasets:
-            dataset_split = dataset_split.shuffle(1000, seed=config.rng_seed)
+        if split == 'train':
+            dataset_split = dataset_split.shuffle(1000, seed=config.rng_seed, reshuffle_each_iteration=True)
 
         # Repeat the dataset.
         dataset_split = dataset_split.repeat()
@@ -78,7 +77,11 @@ def get_datasets(
 
         # Preprocess images.
         dataset_split = dataset_split.map(
-            lambda x: _preprocess_images(x, config.noise_std, seed=config.rng_seed),
+            lambda x: _preprocess_images(
+                x,
+                config.noise_std,
+                interpolate_z=config.interpolate_input_z
+            ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,
         )
@@ -94,7 +97,7 @@ def get_datasets(
 def _preprocess_images(
     batch: Dict[str, tf.Tensor],
     noise_std: float = 0.0,
-    seed: int = 0
+    interpolate_z: int = 16,
 ) -> Dict[str, tf.Tensor]:
     """Preprocesses images."""
     
@@ -112,19 +115,23 @@ def _preprocess_images(
 
     x = (x - xmean) / xstd
 
-    # Interpolate to 16 z slices
-    #x = tf.image.resize(x, (x.shape[0], x.shape[1], 16), method='bilinear')
-
-    # Add noise to the images.
-    if noise_std > 0.0:
-        x = x + tf.random.normal(tf.shape(x), stddev=noise_std, seed=seed)
-
     # Add channel dimension.
     x = x[..., tf.newaxis]
 
+    # Interpolate to 16 z slices
+    x = tf.image.resize(x, (x.shape[1], interpolate_z), method='bilinear')
+
+    # Add noise to the images.
+    if noise_std > 0.0:
+        x = x + tf.random.normal(tf.shape(x), stddev=noise_std)
+
+    # reshape atom map z dimension to match the image z dimension
+    z_size = x.shape[2]
+    y = y[..., -z_size:]
+
     # Swap the species channel to last
     y = tf.transpose(y, perm=[1, 2, 3, 0])
-
+    
     batch["images"] = x # [X, Y, Z, 1]
     batch["atom_map"] = y # [X, Y, Z, num_species]
     
