@@ -3,6 +3,7 @@ import re
 import functools
 
 import numpy as np
+import scipy.ndimage
 import webdataset as wds
 import ml_collections
 
@@ -62,7 +63,8 @@ def get_datasets(config: ml_collections.ConfigDict):
                 functools.partial(
                     make_sample,
                     noise_std=config.noise_std,
-                    max_atoms=config.max_atoms
+                    max_atoms=config.max_atoms,
+                    interpolate_z=config.interpolate_input_z
                 )
             ),
 
@@ -75,7 +77,8 @@ def get_datasets(config: ml_collections.ConfigDict):
             ds,
             batch_size=None,
             shuffle=False,
-            num_workers=4,
+            num_workers=8,
+            persistent_workers=True,
             #prefetch_factor=2,
         )
 
@@ -98,7 +101,8 @@ def get_datasets(config: ml_collections.ConfigDict):
 def make_sample(
     sample: Dict[str, np.ndarray],
     noise_std: float,
-    max_atoms: int
+    max_atoms: int,
+    interpolate_z: int = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     x = sample["x.npy"]
     xyz = sample["xyz.npy"]
@@ -113,6 +117,11 @@ def make_sample(
     xmean = np.mean(x, axis=(0, 1), keepdims=True)
     xstd = np.std(x, axis=(0, 1), keepdims=True)
     x = (x - xmean) / (xstd + 1e-9)
+
+    # Interpolate z
+    if interpolate_z is not None:
+        zoom_factors = (1, 1, interpolate_z / x.shape[-1])      
+        x = scipy.ndimage.zoom(x, zoom_factors)
 
     # Add noise to images
     if noise_std > 0:

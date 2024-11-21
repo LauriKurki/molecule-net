@@ -17,6 +17,7 @@ class TestInputPipeline(absltest.TestCase):
         config.batch_size = 8
         config.train_molecules = (0, 50000)
         config.val_molecules = (50000, 60000)
+        config.interpolate_input_z = 20
 
         print(config)
 

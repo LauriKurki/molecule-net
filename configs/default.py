@@ -15,6 +15,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.val_molecules = (230000, 264000)
     config.shuffle_datasets = True
     config.batch_size = 32
+    config.interpolate_input_z = 20
 
     # Training
     config.num_train_steps = 1_000_000
