@@ -153,7 +153,12 @@ class AttentionUNet(nn.Module):
             dtype=self.dtype,
             name="output"
         )(x)
-
+        
+        # Cast to float32
+        x = x.astype(jnp.float32)
+        attention_maps = [
+            m.astype(jnp.float32) for m in attention_maps
+        ]
 
         if self.return_attention_maps:
             return x, attention_maps

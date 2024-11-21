@@ -77,8 +77,8 @@ def get_datasets(config: ml_collections.ConfigDict):
             ds,
             batch_size=None,
             shuffle=False,
-            num_workers=8,
-            persistent_workers=True,
+            num_workers=0,
+            #persistent_workers=True,
             #prefetch_factor=2,
         )
 
