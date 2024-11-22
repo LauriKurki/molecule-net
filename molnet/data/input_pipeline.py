@@ -138,7 +138,7 @@ def _preprocess_images(
     return batch
 
 
-def get_pseudodatasets(rng, config):
+def get_pseudodatasets(config):
     """Loads pseudodatasets for each split."""
     datasets = {}
     for split in ["train", "val"]:
@@ -148,7 +148,7 @@ def get_pseudodatasets(rng, config):
             lambda x: {
                 "images": tf.zeros((128, 128, 10, 1), dtype=tf.float32),
                 "xyz": tf.zeros((config.max_atoms, 5), dtype=tf.float32),
-                "atom_map": tf.zeros((128, 128, 21, 5), dtype=tf.float32),
+                "atom_map": tf.zeros((128, 128, 10, 5), dtype=tf.float32),
             },
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,
