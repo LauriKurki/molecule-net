@@ -4,7 +4,7 @@ import os
 #os.environ['JAX_PLATFORMS']='cpu'
 
 import jax
-#import tensorflow as tf
+import tensorflow as tf
 
 from configs.tests import unet_test, attention_test
 from molnet import train
@@ -30,7 +30,7 @@ class TrainTest(parameterized.TestCase):
 
         #Hide any GPUs from TensorFlow. Otherwise TF might reserve memory and make
         # it unavailable to JAX.
-        #tf.config.experimental.set_visible_devices([], 'GPU')
+        tf.config.experimental.set_visible_devices([], 'GPU')
 
         logging.info(f"Running test on devices: {jax.devices()}")
 
