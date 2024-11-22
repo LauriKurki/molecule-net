@@ -136,7 +136,7 @@ def evaluate_model(
         for step in range(num_eval_steps):
             #batch = next(device_batch(data_iterator))
             batch = next(dataloader)
-            #batch = batch_to_numpy(batch)
+            batch = jax.tree_util.tree_map(lambda x: jnp.array(x, dtype=jnp.bfloat16), batch)
            
             # Compute metrics for this batch.
             batch_metrics = eval_step(state, batch)
@@ -170,7 +170,7 @@ def predict_with_state(state, dataloader, num_batches):
     
     for i in range(num_batches):
         batch = next(dataloader)
-        #batch = batch_to_numpy(batch)
+        batch = jax.tree_util.tree_map(lambda x: jnp.array(x, dtype=jnp.bfloat16), batch)
 
         (
             batch_inputs, batch_targets, batch_preds, batch_xyzs, batch_loss
@@ -219,7 +219,7 @@ def train_and_evaluate(
     # Create model
     logging.info("Creating model.")
     batch = next(train_ds)
-    #batch = batch_to_numpy(batch)
+    batch = jax.tree_util.tree_map(lambda x: jnp.array(x, dtype=jnp.bfloat16), batch)
     rng, init_rng = jax.random.split(rng)
     model = create_model(config.model)
 
@@ -308,7 +308,7 @@ def train_and_evaluate(
         try:
             t0 = time.perf_counter()
             batch = next(train_ds)
-            #batch = batch_to_numpy(batch)
+            batch = jax.tree_util.tree_map(lambda x: jnp.array(x, dtype=jnp.bfloat16), batch)
 
             logging.log_first_n(
                 logging.INFO,
