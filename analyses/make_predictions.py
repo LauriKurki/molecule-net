@@ -110,6 +110,9 @@ def make_predictions(
         graphics.save_predictions(
             inputs, targets, preds, error, outputdir, start_save_idx=i*config.batch_size
         )
+
+        # Compute z_cutoff from the z dimension of the target
+        z_cutoff = targets.shape[-2] * 0.1 # 0.1 Å per pixel, e.g. 20 pixels = 2 Å
         # Plot the predictions as molecules
         graphics.save_predictions_as_molecules(
             inputs,
@@ -118,6 +121,7 @@ def make_predictions(
             xyzs,
             outputdir,
             peak_threshold=peak_threshold,
+            z_cutoff=z_cutoff,
             start_save_idx=i*config.batch_size
         )
 
