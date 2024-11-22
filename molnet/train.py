@@ -231,7 +231,7 @@ def train_and_evaluate(
     rng = jax.random.PRNGKey(config.rng_seed)
     #rng, data_rng = jax.random.split(rng)
     #datasets = input_pipeline.get_datasets(data_rng, config)
-    datasets = input_pipeline.get_pseudodatasets(config)
+    datasets = input_pipeline.get_datasets(config)
     train_ds = datasets["train"]
 
     # Create model

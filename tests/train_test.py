@@ -1,8 +1,8 @@
 import tempfile
 
 import os
-os.environ['XLA_FLAGS'] = "--xla_force_host_platform_device_count=4"
-os.environ['JAX_PLATFORMS']='cpu'
+#os.environ['XLA_FLAGS'] = "--xla_force_host_platform_device_count=4"
+#os.environ['JAX_PLATFORMS']='cpu'
 
 import jax
 import tensorflow as tf

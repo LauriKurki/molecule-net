@@ -15,7 +15,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.predict_num_batches = 1
     config.predict_num_batches_at_end_of_training = 1
     
-    config.batch_size = 2
+    config.batch_size = 4 # True batch size is this times number of xla devices
     config.train_molecules = (0, 50000)
     config.val_molecules = (50000, 60000)
 
