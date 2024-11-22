@@ -4,6 +4,7 @@ from typing import Any, Dict, Callable
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from absl import logging
 
@@ -181,6 +182,10 @@ class PredictionHook:
             targets.shape,
         ) # [num_samples, nX, nY, nZ, num_species]
 
+        # Get z_cutoff from the z dimension of the target
+        z_cutoff = targets.shape[-2] * 0.1 # 0.1 Å per pixel, e.g. 20 pixels = 2 Å
+        scan_dim = np.array([16., 16., z_cutoff])
+
         # Write predictions in simplified format (sum over heights and species)
         inputs_summed = inputs.sum(axis=(3, 4))[..., None]
         preds_summed = preds.sum(axis=(3, 4))[..., None]
@@ -209,7 +214,10 @@ class PredictionHook:
         )
 
         graphics.save_predictions_as_molecules(
-            inputs, targets, preds, xyzs, output_dir, peak_threshold=self.peak_threshold
+            inputs, targets, preds, xyzs, output_dir,
+            peak_threshold=self.peak_threshold,
+            scan_dim=scan_dim,
+            z_cutoff=z_cutoff
         )
 
         # Disable writing of images for now

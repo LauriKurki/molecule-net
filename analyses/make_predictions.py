@@ -4,6 +4,7 @@ from absl import app, flags
 import jax
 import jax.numpy as jnp
 from flax.training import train_state
+import numpy as np
 
 from molnet import graphics
 from molnet.data import input_pipeline_wds
@@ -120,6 +121,7 @@ def make_predictions(
             preds,
             xyzs,
             outputdir,
+            scan_dim=np.array([16., 16., z_cutoff]),
             peak_threshold=peak_threshold,
             z_cutoff=z_cutoff,
             start_save_idx=i*config.batch_size
