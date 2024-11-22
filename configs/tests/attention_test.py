@@ -4,7 +4,7 @@ import ml_collections
 
 def get_config() -> ml_collections.ConfigDict:
     """Get the default configuration."""
-    config = default.get_config()
+    config = attention_unet.get_config()
     config.debug = True
 
     config.num_train_steps = 50
@@ -19,7 +19,6 @@ def get_config() -> ml_collections.ConfigDict:
     config.train_molecules = (0, 50000)
     config.val_molecules = (50000, 60000)
 
-    config.model = ml_collections.ConfigDict()
     config.model.model_name = "attention-unet"
     config.model.dtype = "bfloat16"
     config.model.output_channels = 5
