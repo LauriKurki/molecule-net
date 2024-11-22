@@ -10,7 +10,7 @@ import tensorflow as tf
 import chex
 import ml_collections
 
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Optional
 
 
 def get_datasets(
@@ -97,7 +97,7 @@ def get_datasets(
 def _preprocess_images(
     batch: Dict[str, tf.Tensor],
     noise_std: float = 0.0,
-    interpolate_z: int = 16,
+    interpolate_z: Optional[int] = None,
 ) -> Dict[str, tf.Tensor]:
     """Preprocesses images."""
     
@@ -119,7 +119,8 @@ def _preprocess_images(
     x = x[..., tf.newaxis]
 
     # Interpolate to 16 z slices
-    x = tf.image.resize(x, (x.shape[1], interpolate_z), method='bilinear')
+    if interpolate_z is not None:
+        x = tf.image.resize(x, (x.shape[1], interpolate_z), method='bilinear')
 
     # Add noise to the images.
     if noise_std > 0.0:
