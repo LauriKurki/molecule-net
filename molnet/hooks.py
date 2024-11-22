@@ -182,9 +182,9 @@ class PredictionHook:
         ) # [num_samples, nX, nY, nZ, num_species]
 
         # Write predictions in simplified format (sum over heights and species)
-        inputs_summed = inputs.sum(axis=(3, 4))[..., None].astype(jnp.float32)
-        preds_summed = preds.sum(axis=(3, 4))[..., None].astype(jnp.float32)
-        targets_summed = targets.sum(axis=(3, 4))[..., None].astype(jnp.float32)
+        inputs_summed = inputs.sum(axis=(3, 4))[..., None]
+        preds_summed = preds.sum(axis=(3, 4))[..., None]
+        targets_summed = targets.sum(axis=(3, 4))[..., None]
 
         # scale everything to [0, 1] after shifting to positive values
         inputs_summed = inputs_summed - inputs_summed.min()
@@ -198,11 +198,6 @@ class PredictionHook:
         assert inputs_summed.ndim == 4, inputs_summed.shape # [num_samples, nX, nY, 1]
         assert preds_summed.ndim == 4, preds_summed.shape # [num_samples, nX, nY, 1]
         assert targets_summed.ndim == 4, targets_summed.shape # [num_samples, nX, nY, 1]
-
-        inputs = inputs.astype(jnp.float32)
-        targets = targets.astype(jnp.float32)
-        preds = preds.astype(jnp.float32)
-        xyzss = xyzs.astype(jnp.float32)
 
         # Write detailed predictions
         graphics.save_predictions(
