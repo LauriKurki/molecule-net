@@ -143,13 +143,8 @@ def evaluate_model(
 
         # Loop over graphs.
         for step in range(num_eval_steps):
-<<<<<<< HEAD
             batch = next(device_batch(dataloader))
             #batch = batch_to_numpy(batch)
-=======
-            #batch = next(device_batch(data_iterator))
-            batch = next(dataloader)
->>>>>>> main
            
             # Compute metrics for this batch.
             batch_metrics = eval_step(state, batch)
@@ -183,12 +178,8 @@ def predict_with_state(state, dataloader, num_batches):
     xyzs = []
     
     for i in range(num_batches):
-<<<<<<< HEAD
         batch = next(device_batch(dataloader))
         #batch = batch_to_numpy(batch)
-=======
-        batch = next(dataloader)
->>>>>>> main
 
         (
             batch_inputs, batch_targets, batch_preds, batch_xyzs, batch_loss
@@ -335,12 +326,8 @@ def train_and_evaluate(
 
         try:
             t0 = time.perf_counter()
-<<<<<<< HEAD
             batch = next(device_batch(train_ds))
             #batch = batch_to_numpy(batch)
-=======
-            batch = next(train_ds)
->>>>>>> main
 
             logging.log_first_n(
                 logging.INFO,
