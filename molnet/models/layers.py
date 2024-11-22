@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import flax.linen as nn
 
-from typing import Tuple, Callable
+from typing import Tuple, Callable, Any
 
 class ResBlock(nn.Module):
     """Residual block with two convolutional layers and a skip connection."""
@@ -11,6 +11,7 @@ class ResBlock(nn.Module):
     kernel_size: Tuple[int, int, int] = (3, 3, 3)
     strides: Tuple[int, int, int] = (1, 1, 1)
     activation: Callable[[jnp.ndarray], jnp.ndarray] = nn.relu
+    dtype: Any = jnp.float32
 
     @nn.compact
     def __call__(
@@ -23,19 +24,21 @@ class ResBlock(nn.Module):
             features=self.channels,
             kernel_size=self.kernel_size,
             strides=self.strides,
+            dtype=self.dtype
         )(x)
-        x = nn.BatchNorm(use_running_average=not training)(x)
+        x = nn.BatchNorm(use_running_average=not training, dtype=self.dtype)(x)
         x = self.activation(x)
         x = nn.Conv(
             features=self.channels,
             kernel_size=self.kernel_size,
             strides=self.strides,
+            dtype=self.dtype
         )(x)
-        x = nn.BatchNorm(use_running_average=not training)(x)
+        x = nn.BatchNorm(use_running_average=not training, dtype=self.dtype)(x)
 
         # Projection 
         if x.shape != residual.shape:
-            residual = nn.Conv(features=self.channels, kernel_size=1)(residual)
+            residual = nn.Conv(features=self.channels, kernel_size=1, dtype=self.dtype)(residual)
         
         x = self.activation(x + residual)
         
@@ -47,6 +50,7 @@ class AttentionBlock3D(nn.Module):
     kernel_size: Tuple[int, int, int] = (3, 3, 3)
     conv_activation: nn.activation = nn.relu
     attention_activation: nn.activation = nn.sigmoid
+    dtype: Any = jnp.float32
 
     @nn.compact
     def __call__(
@@ -59,7 +63,7 @@ class AttentionBlock3D(nn.Module):
         q = jax.image.resize(
             q,
             shape=target_shape,
-            method='bilinear'
+            method='bilinear',
         )
 
         # Convolve the query
@@ -67,6 +71,7 @@ class AttentionBlock3D(nn.Module):
             nn.Conv(
                 features=self.attention_channels,
                 kernel_size=self.kernel_size,
+                dtype=self.dtype
             )(q)
         )
 
@@ -75,6 +80,7 @@ class AttentionBlock3D(nn.Module):
             nn.Conv(
                 features=self.attention_channels,
                 kernel_size=self.kernel_size,
+                dtype=self.dtype
             )(x)
         )
 
@@ -83,9 +89,10 @@ class AttentionBlock3D(nn.Module):
         a = self.attention_activation(
             nn.Conv(
                 1,
-                kernel_size=self.kernel_size
+                kernel_size=self.kernel_size,
+                dtype=jnp.float32
             )(a)
-        )
+        ).astype(self.dtype)
 
         # Apply the attention
         y = a * x
