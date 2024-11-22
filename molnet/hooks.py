@@ -2,6 +2,8 @@ import os
 import pickle
 from typing import Any, Dict, Callable
 
+import flax.jax_utils
+import flax.jax_utils
 import jax
 import jax.numpy as jnp
 
@@ -46,7 +48,7 @@ class CheckpointHook:
     ):
 
         # Unreplicate from all devices
-        #state = flax.jax_utils.unreplicate(state)
+        state = flax.jax_utils.unreplicate(state)
 
         # Save the state
         with open(
@@ -85,6 +87,7 @@ class LogTrainingMetricsHook:
     ):
         """Logs the training metrics and returns an empty metrics collection."""
         
+        train_metrics = flax.jax_utils.unreplicate(train_metrics)
         train_metrics = train_metrics.compute()
 
         self.writer.write_scalars(
@@ -93,8 +96,10 @@ class LogTrainingMetricsHook:
         )
 
         self.writer.flush()
+        train_metrics = train.Metrics.empty()
+        train_metrics = flax.jax_utils.replicate(train_metrics)
 
-        return train.Metrics.empty()
+        return train_metrics
 
 
 @dataclass
@@ -135,7 +140,7 @@ class EvaluationHook:
         if jnp.all(eval_metrics["val_eval"]["loss"] < min_val_loss):
             state = state.replace(
                 best_params=state.params,
-                metrics_for_best_params=eval_metrics,
+                metrics_for_best_params=flax.jax_utils.replicate(eval_metrics),
                 step_for_best_params=state.step,
             )
             logging.info("New best state found at step %d.", state.get_step())

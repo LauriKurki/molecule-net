@@ -1,4 +1,4 @@
-from configs import default
+from configs import default, attention_unet
 
 import ml_collections
 
@@ -15,7 +15,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.predict_num_batches = 1
     config.predict_num_batches_at_end_of_training = 1
     
-    config.batch_size = 16
+    config.batch_size = 2
     config.train_molecules = (0, 50000)
     config.val_molecules = (50000, 60000)
 

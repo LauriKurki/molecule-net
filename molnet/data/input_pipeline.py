@@ -146,9 +146,17 @@ def get_pseudodatasets(config):
         dataset = dataset.repeat()
         dataset = dataset.map(
             lambda x: {
-                "images": tf.zeros((128, 128, 10, 1), dtype=tf.float32),
-                "xyz": tf.zeros((config.max_atoms, 5), dtype=tf.float32),
-                "atom_map": tf.zeros((128, 128, 10, 5), dtype=tf.float32),
+                "images": tf.random.normal((128, 128, 10, 1), dtype=tf.float32),
+                "xyz": tf.constant(
+                    [
+                        [0.0, 0.0, 0.0, 0.0, 1.],
+                        [5.0, 12.0, 0.0, 0.0, 1.],
+                        [4.0, 16.0, 0.0, 0.0, 1.],
+                        [0.0, 1.0, 8.0, 0.0, 6.],
+                        [3.0, 0.0, 2.0, 0.0, 9.],
+                    ]
+                ),
+                "atom_map": tf.random.normal((128, 128, 10, 5), dtype=tf.float32),
             },
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,

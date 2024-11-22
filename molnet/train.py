@@ -3,6 +3,8 @@ import time
 import functools
 
 import flax.jax_utils
+import flax.jax_utils
+import flax.jax_utils
 import flax.struct
 import jax
 import jax.numpy as jnp
@@ -65,7 +67,7 @@ def batch_to_numpy(batch_tuple):
     return batch
 
 
-@jax.jit
+@functools.partial(jax.pmap, axis_name="device")
 def train_step(
     state: train_state.TrainState,
     batch: Dict[str, Any],
@@ -89,20 +91,24 @@ def train_step(
     # Compute loss and gradients
     grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
     (batch_loss, (_, updates)), grads = grad_fn(state.params)
+    grads = jax.lax.pmean(grads, axis_name="device")
+    batch_stats = jax.lax.pmean(updates["batch_stats"], axis_name="device")
 
-    batch_metrics = Metrics.single_from_model_output(
+    batch_metrics = Metrics.gather_from_model_output(
+        axis_name="device",
         loss=batch_loss,
     )
 
     # Update parameters
     new_state = state.apply_gradients(
         grads=grads,
-        batch_stats=updates["batch_stats"],)
+        batch_stats=batch_stats,
+    )
 
     return new_state, batch_metrics
 
 
-@jax.jit
+@functools.partial(jax.pmap, axis_name="device")
 def eval_step(
     state: train_state.TrainState,
     batch: Dict[str, Any],
@@ -117,7 +123,8 @@ def eval_step(
         preds,
         batch["atom_map"]
     )
-    return Metrics.single_from_model_output(
+    return Metrics.gather_from_model_output(
+        axis_name="device",
         loss=batch_loss,        
     )
 
@@ -132,22 +139,24 @@ def evaluate_model(
     eval_metrics = {}
     for split, dataloader in datasets.items():
         split_metrics = Metrics.empty()
+        split_metrics = flax.jax_utils.replicate(split_metrics)
+
         # Loop over graphs.
         for step in range(num_eval_steps):
-            #batch = next(device_batch(data_iterator))
-            batch = next(dataloader)
+            batch = next(device_batch(dataloader))
             #batch = batch_to_numpy(batch)
            
             # Compute metrics for this batch.
             batch_metrics = eval_step(state, batch)
             split_metrics = split_metrics.merge(batch_metrics)
 
+        split_metrics = flax.jax_utils.unreplicate(split_metrics)
         eval_metrics[split + "_eval"] = split_metrics
 
     return eval_metrics
 
 
-@jax.jit
+@functools.partial(jax.pmap, axis_name="device")
 def predict_step(state, batch):
     inputs, targets, xyzs = batch['images'], batch['atom_map'], batch['xyz']
     preds = state.apply_fn(
@@ -169,7 +178,7 @@ def predict_with_state(state, dataloader, num_batches):
     xyzs = []
     
     for i in range(num_batches):
-        batch = next(dataloader)
+        batch = next(device_batch(dataloader))
         #batch = batch_to_numpy(batch)
 
         (
@@ -178,6 +187,15 @@ def predict_with_state(state, dataloader, num_batches):
             state,
             batch
         )
+
+        device_size = batch_inputs.shape[0]
+        local_batch_size = batch_inputs.shape[1]
+        # Reshape to [num_devices * local_batch_size, ...]
+        batch_inputs = jnp.reshape(batch_inputs, (device_size * local_batch_size, *batch_inputs.shape[2:]))
+        batch_targets = jnp.reshape(batch_targets, (device_size * local_batch_size, *batch_targets.shape[2:]))
+        batch_preds = jnp.reshape(batch_preds, (device_size * local_batch_size, *batch_preds.shape[2:]))
+        batch_xyzs = jnp.reshape(batch_xyzs, (device_size * local_batch_size, *batch_xyzs.shape[2:]))
+        batch_loss = jnp.reshape(batch_loss, (device_size * local_batch_size,))
 
         inputs.append(batch_inputs)
         targets.append(batch_targets)
@@ -248,13 +266,15 @@ def train_and_evaluate(
     
     # Logging
     log_hook = hooks.LogTrainingMetricsHook(writer)
-    train_metrics = Metrics.empty()
+    train_metrics = flax.jax_utils.replicate(Metrics.empty())
 
     # Checkpointing
     checkpoint_path = os.path.join(workdir, "checkpoints")
     checkpoint_hook = hooks.CheckpointHook(checkpoint_path, max_to_keep=1)
     state = checkpoint_hook.restore_or_init(state)
     initial_step = state.get_step()
+
+    state = flax.jax_utils.replicate(state)
 
     # Evaluation
     evaluate_model_hook = hooks.EvaluationHook(
@@ -307,7 +327,7 @@ def train_and_evaluate(
 
         try:
             t0 = time.perf_counter()
-            batch = next(train_ds)
+            batch = next(device_batch(train_ds))
             #batch = batch_to_numpy(batch)
 
             logging.log_first_n(
