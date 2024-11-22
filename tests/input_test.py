@@ -14,7 +14,7 @@ class TestInputPipeline(absltest.TestCase):
 
         print(config)
 
-        datasets = input_pipeline.get_datasets(config)
+        datasets = input_pipeline.get_pseudodatasets(config)
         trainloader = datasets["train"]
 
         times = []
