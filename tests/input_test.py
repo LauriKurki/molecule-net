@@ -1,4 +1,6 @@
 import time
+import jax
+import jax.numpy as jnp
 
 from absl.testing import absltest
 
@@ -22,11 +24,12 @@ class TestInputPipeline(absltest.TestCase):
 
             t0 = time.perf_counter()
             batch = next(trainloader)
+            batch = jax.tree_util.tree_map(lambda x: jnp.array(x, dtype=jnp.bfloat16), batch)
             t1 = time.perf_counter()
             
             # Print the shapes of each item in the batch.
             for key, value in batch.items():
-                print(key, value.shape, end=", ")
+                print(key, value.dtype, value.shape, end=" -- ")
 
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
             time.sleep(0.2)
