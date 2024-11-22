@@ -26,7 +26,7 @@ class TestInputPipeline(absltest.TestCase):
             
             # Print the shapes of each item in the batch.
             for key, value in batch.items():
-                print(key, value.shape, end=", ")
+                print(key, type(value), value.shape, end=" -- ")
 
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
             time.sleep(0.2)
