@@ -10,6 +10,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.dataset = "edafm"
     config.rng_seed = 0
     config.noise_std = 0.1
+    config.cutout_probs = [0.5, 0.3, 0.1, 0.05, 0.05]
     config.max_atoms = 54
     config.train_molecules = (0, 230000)
     config.val_molecules = (230000, 264000)
