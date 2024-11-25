@@ -82,7 +82,8 @@ def get_datasets(
             lambda x: _preprocess_images(
                 x,
                 config.noise_std,
-                interpolate_z=config.interpolate_input_z
+                interpolate_z=config.interpolate_input_z,
+                cutout_probs=config.cutout_probs,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,
@@ -113,7 +114,7 @@ def _preprocess_images(
     
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
-    
+
     # Add channel dimension.
     x = x[..., tf.newaxis]
     # Swap the species channel to last
