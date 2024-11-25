@@ -10,6 +10,8 @@ import tensorflow as tf
 import chex
 import ml_collections
 
+from molnet.data import augmentation
+
 from typing import Dict, List, Sequence, Optional
 
 
@@ -98,6 +100,7 @@ def _preprocess_images(
     batch: Dict[str, tf.Tensor],
     noise_std: float = 0.0,
     interpolate_z: Optional[int] = None,
+    cutout_probs: Optional[List[float]] = [0.5, 0.3, 0.1, 0.05, 0.05],
 ) -> Dict[str, tf.Tensor]:
     """Preprocesses images."""
     
@@ -107,18 +110,16 @@ def _preprocess_images(
     # Cast the images to float32.
     x = tf.cast(x, tf.float32)
     y = tf.cast(y, tf.float32)
-
+    
     # Normalize the images to zero mean and unit variance.
-    # images are [X, Y, Z] - normalize each z slice separately
-    xmean = tf.reduce_mean(x, axis=(0, 1), keepdims=True)
-    xstd = tf.math.reduce_std(x, axis=(0, 1), keepdims=True)
-
-    x = (x - xmean) / xstd
-
+    x = augmentation.normalize_images(x)
+    
     # Add channel dimension.
     x = x[..., tf.newaxis]
+    # Swap the species channel to last
+    y = tf.transpose(y, perm=[1, 2, 3, 0])
 
-    # Interpolate to 16 z slices
+    # Interpolate to `interpolate_z` z slices
     if interpolate_z is not None:
         x = tf.image.resize(x, (x.shape[1], interpolate_z), method='bilinear')
 
@@ -126,17 +127,24 @@ def _preprocess_images(
     if noise_std > 0.0:
         x = x + tf.random.normal(tf.shape(x), stddev=noise_std)
 
+    # Apply rotation and flip augmentation.
+    x, y = augmentation.random_rotate_3d_stacks(x, y)
+    x, y = augmentation.random_flip_3d_stacks(x, y)
+
+    # Create cutout augmentation.
+    x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(5, 10))
+
     # reshape atom map z dimension to match the image z dimension
     z_size = x.shape[2]
-    y = y[..., -z_size:]
+    y = y[..., -z_size:, :]
 
-    # Swap the species channel to last
-    y = tf.transpose(y, perm=[1, 2, 3, 0])
+    sample = {
+        "images": x,
+        "atom_map": y,
+        "xyz": batch["xyz"],
+    }
     
-    batch["images"] = x # [X, Y, Z, 1]
-    batch["atom_map"] = y # [X, Y, Z, num_species]
-    
-    return batch
+    return sample
 
 
 def get_pseudodatasets(rng, config):
