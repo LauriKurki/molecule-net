@@ -7,7 +7,7 @@ from flax.training import train_state
 import numpy as np
 
 from molnet import graphics
-from molnet.data import input_pipeline_wds
+from molnet.data import input_pipeline
 from analyses.utils import load_from_workdir
 
 from typing import Optional, Dict, Tuple, List
@@ -76,9 +76,7 @@ def make_predictions(
         config.batch_size = batch_size
 
     # Load the dataset
-    rng = jax.random.PRNGKey(0)
-    datarng, rng = jax.random.split(rng)
-    dataset = input_pipeline_wds.get_datasets(
+    dataset = input_pipeline.get_datasets(
         config
     )["val"]
 
