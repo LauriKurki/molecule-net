@@ -37,9 +37,9 @@ def generate_atom_maps(
     logging.info(f"Saving to {output_dir}")
 
     signature = {
-        "images": tf.TensorSpec(shape=(128, 128, 10), dtype=tf.float16),
+        "images": tf.TensorSpec(shape=(128, 128, 10), dtype=tf.float32),
         "xyz": tf.TensorSpec(shape=(None, 5), dtype=tf.float32),
-        "atom_map": tf.TensorSpec(shape=(len(atomic_numbers), 128, 128, 26), dtype=tf.float16)
+        "atom_map": tf.TensorSpec(shape=(len(atomic_numbers), 128, 128, 26), dtype=tf.float32)
     }
 
     def generator():
@@ -59,9 +59,9 @@ def generate_atom_maps(
                 continue
 
             yield {
-                "images": x.astype(np.float16),
-                "xyz": xyz.astype(np.float16),
-                "atom_map": atom_map.astype(np.float16),
+                "images": x.astype(np.float32),
+                "xyz": xyz.astype(np.float32),
+                "atom_map": atom_map.astype(np.float32),
             }
 
     dataset = tf.data.Dataset.from_generator(generator, output_signature=signature)
