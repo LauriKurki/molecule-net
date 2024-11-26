@@ -139,23 +139,22 @@ def _create_one_atom_position_map_np(
         `jnp.ndarray` of shape (map_size/map_resolution, map_size/map_resolution). The atom position map. 
     """
 
-    x = np.linspace(sw[0,0], sw[1,0], int(sw_size / map_resolution))
-    y = np.linspace(sw[0,1], sw[1,1], int(sw_size / map_resolution))
-    z = np.arange(z_max - z_cutoff, z_max+1e-9, 0.1)
+    x = np.linspace(sw[0,0], sw[1,0], int(sw_size / map_resolution), dtype=np.float32)
+    y = np.linspace(sw[0,1], sw[1,1], int(sw_size / map_resolution), dtype=np.float32)
+    z = np.arange(z_max - z_cutoff, z_max+1e-9, 0.1, dtype=np.float32)
     X, Y, Z = np.meshgrid(x, y, z)
 
     if xyz.shape[0] == 0:
         return np.zeros_like(X)
+    
+    maps = np.zeros_like(X)
 
-    maps = np.vectorize(
-        lambda atom: np.exp(
+    for atom in xyz:
+        maps += np.exp(
             -((X - atom[0]) ** 2 + (Y - atom[1]) ** 2 + (Z - atom[2]) ** 2) / (2*sigma**2)
-        ),
-        signature='(a)->(q, w, e)',
-    )(xyz)
+        )
 
-    return maps.sum(axis=0)
-
+    return maps
 
 
 def get_image_and_atom_map_np(
