@@ -6,10 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "molnet"
 version = "0.0.0"
 dependencies = [
+    "tensorflow==2.13.0",
+    "clu==0.0.9",
     "jax",
     "matplotlib",
     "numpy",
-    "clu==0.0.9",
     "h5py",
     "absl-py",
     "optax",
@@ -19,7 +20,6 @@ dependencies = [
     "ase",
     "scipy",
 	"scikit-image",
-    "tensorflow==2.13.0",
 	"tensorboard",
 ]
 
