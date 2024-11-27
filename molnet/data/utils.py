@@ -3,6 +3,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+import tensorflow as tf
+from tensorflow.python.ops.numpy_ops import np_config
+np_config.enable_numpy_behavior()
+
 import h5py
 
 from molnet.data._f90 import peaks
@@ -25,6 +29,66 @@ clib.peak_dist.argtypes = [
     int_p, fp_p,
     fp_p, fp_p, c_float
 ] # fmt: on
+
+
+def compute_atom_maps(
+    xyz: np.ndarray,
+    sw: np.ndarray,
+    z_cutoff: float = 2.0,
+    map_resolution: float = 0.125,
+    sigma: float = 0.2,
+) -> np.ndarray:
+    """
+    Compute atom maps for a molecule.
+
+    Args:
+        xyz: `np.ndarray` of shape (N, 5) where N is the number of atoms.
+        sw: `np.ndarray` of shape (2, 3). Scan window.
+        z_cutoff: float. Where to cutoff atoms.
+        map_resolution: float. The resolution of the map in Angstroms.
+        sigma: float. The standard deviation of the Gaussian function.
+
+    Returns:
+        `np.ndarray` of shape (n_species, 128, 128, z_cutoff/0.1). The atom maps.
+    """
+
+    z_max = np.max(xyz[:, 2])
+    sw_size = np.ceil(sw[1,0] - sw[0,0])
+    z_cutoff = 2.0
+    map_resolution = 0.125
+    sigma = 0.2
+    xyz = xyz
+
+    def filter_by_species(sp):
+        # Create a boolean mask for rows matching the species
+        mask = xyz[:, -1] == sp
+        # Apply the mask to filter rows and select only position columns
+        filtered_positions = np.where(mask[:, None], xyz[:, :3], np.zeros_like(xyz[:, :3])-np.inf)
+        return filtered_positions
+
+    # Apply filtering and store in a numpy array
+    xyz_by_species = [filter_by_species(sp) for sp in np.unique(xyz[:, -1])]
+
+    assert xyz_by_species.shape == (
+        len(np.unique(xyz[:, -1])), xyz.shape[0], 3
+    ), (
+        xyz_by_species.shape,
+        len(np.unique(xyz[:, -1])),
+        xyz.shape[0],
+        3,
+    )
+
+    atom_map = _create_all_atom_position_maps_cpp(
+        xyz_by_species,
+        sw,
+        z_max,
+        sw_size,
+        z_cutoff,
+        map_resolution,
+        sigma,
+    )
+
+    return atom_map
 
 
 def _pad_xyzs(xyz, max_len):
