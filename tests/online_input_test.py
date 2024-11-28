@@ -1,5 +1,8 @@
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
+from molnet.data import utils
 from molnet.data import input_pipeline_online
 
 from absl.testing import absltest
@@ -14,7 +17,7 @@ class TestInputPipeline(absltest.TestCase):
         config.root_dir = root_dirs.get_root_dir()
         config.num_workers = 8
 
-        config.batch_size = 8
+        config.batch_size = 12
         config.train_molecules = (0, 50000)
         config.val_molecules = (50000, 60000)
         config.interpolate_input_z = 20
@@ -29,26 +32,29 @@ class TestInputPipeline(absltest.TestCase):
         for i in range(100):
             t0 = time.perf_counter()
             batch = next(trainloader)
+            #target = utils.compute_atom_maps(
+            #    batch,
+            #    z_cutoff=1.0,
+            #    map_resolution=0.125,
+            #    sigma=0.2
+            #)
             t1 = time.perf_counter()
 
-            if isinstance(batch, dict):
-                print(batch.keys())
-                x, y, xyz = batch["images"], batch["atom_map"], batch["xyz"]
-            else:
-                x, y, xyz = batch
+            #x, sw, xyz = batch["images"], batch["sw"], batch["xyz"]
+            x, sw, xyz, target = batch["images"], batch["sw"], batch["xyz"], batch["target"]
 
-            print(f"Shapes: x: {x.shape}, y: {y.shape}, xyz: {xyz.shape}")
-            print(f"dtypes: x: {x.dtype}, y: {y.dtype}, xyz: {xyz.dtype}")
-            print(f"x min: {x.min()}, x max: {x.max()}, x mean: {x.mean()}")
+            print(f"shapes: {x.shape}, {sw.shape}, {xyz.shape} {target.shape}")
+            print(f"dtypes: {x.dtype}, {sw.dtype}, {xyz.dtype} {target.dtype}")     
 
             if i < 5: continue
             times.append(t1 - t0)
 
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
-            time.sleep(0.0)
+            time.sleep(0.1)
 
 
         print(f"Average time to get batch: {sum(times)/len(times)*1e3:.2f} ms")
+
 
 if __name__ == '__main__':
     absltest.main()
