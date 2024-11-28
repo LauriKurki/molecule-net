@@ -93,7 +93,7 @@ def get_datasets(
                 x,
                 z_cutoff=1.0,
                 map_resolution=0.125,
-                sigma=0.3,
+                sigma=0.2,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=False
@@ -121,11 +121,11 @@ def _preprocess_images(
     xyz = batch["xyz"]
 
     # Shift xyz coordinates by scan window, so that scan window starts at (0, 0).
-    #shifted_xyz = xyz[:, :2] - sw[0, :2]
-    #shifted_xyz = tf.concat([shifted_xyz, xyz[:, 2:]], axis=-1)
+    shifted_xyz = xyz[:, :2] - sw[0, :2]
+    shifted_xyz = tf.concat([shifted_xyz, xyz[:, 2:]], axis=-1)
 
     # Also shift the scan window to start at (0, 0).
-    #shifted_sw = sw - sw[0]
+    shifted_sw = sw - sw[0]
 
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
@@ -150,8 +150,8 @@ def _preprocess_images(
 
     sample = {
         "images": x,
-        "xyz": xyz,
-        "sw": sw
+        "xyz": shifted_xyz,
+        "sw": shifted_sw,
     }
     
     return sample
@@ -165,12 +165,15 @@ def _compute_atom_maps(
 ) -> tf.Tensor:
     """Computes atom maps."""
     xyz = batch["xyz"]
+    z_max = tf.reduce_max(xyz[:, 2])
 
     # Compute grids # TODO: REPLACE WITH COORDINATES FROM BATCH["sw"]
-    x = tf.linspace(tf.constant(0, dtype=tf.float32), 16, 128)
-    y = tf.linspace(tf.constant(0, dtype=tf.float32), 16, 128)
-    z = tf.range(-z_cutoff, 0, 0.1, dtype=tf.float32)
-    X, Y, Z = tf.meshgrid(x, y, z, indexing='ij')
+    # Tried, didn't work. Come back to this later.
+    # For now, the molecule (and scan window) is shifted in _preprocess_images to start at (0, 0).
+    x = tf.linspace(0., 16., 128)
+    y = tf.linspace(0., 16., 128)
+    z = tf.linspace(z_max-z_cutoff, z_max, 10)
+    X, Y, Z = tf.meshgrid(x, y, z, indexing='xy')
 
     # Compute atom maps.
     maps_h = tf.zeros_like(X)

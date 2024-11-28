@@ -5,25 +5,25 @@ import numpy as np
 
 import h5py
 
-from molnet.data._c.bindings import peak_dist_species
+#from molnet.data._c.bindings import peak_dist_species
 
 from typing import Dict, Tuple, List
 
 import ctypes
 from ctypes import c_int, c_float, POINTER
 
-this_dir = os.path.dirname(os.path.abspath(__file__))
-clib = ctypes.CDLL(os.path.join(this_dir, "_c", "peaks_lib.so"))
+#this_dir = os.path.dirname(os.path.abspath(__file__))
+#clib = ctypes.CDLL(os.path.join(this_dir, "_c", "peaks_lib.so"))
 
-fp_p = POINTER(c_float)
-int_p = POINTER(c_int)
+#fp_p = POINTER(c_float)
+#int_p = POINTER(c_int)
 
 # fmt: off
-clib.peak_dist.argtypes = [
-    c_int, c_int, c_int, c_int, fp_p,
-    int_p, fp_p,
-    fp_p, fp_p, c_float
-] # fmt: on
+#clib.peak_dist.argtypes = [
+#    c_int, c_int, c_int, c_int, fp_p,
+#    int_p, fp_p,
+#    fp_p, fp_p, c_float
+#] # fmt: on
 
 
 def compute_atom_maps(

@@ -32,16 +32,10 @@ class TestInputPipeline(absltest.TestCase):
         for i in range(100):
             t0 = time.perf_counter()
             batch = next(trainloader)
-            #target = utils.compute_atom_maps(
-            #    batch,
-            #    z_cutoff=1.0,
-            #    map_resolution=0.125,
-            #    sigma=0.2
-            #)
             t1 = time.perf_counter()
 
             #x, sw, xyz = batch["images"], batch["sw"], batch["xyz"]
-            x, sw, xyz, target = batch["images"], batch["sw"], batch["xyz"], batch["target"]
+            x, sw, xyz, target = batch["images"], batch["sw"], batch["xyz"], batch["atom_map"]
 
             print(f"shapes: {x.shape}, {sw.shape}, {xyz.shape} {target.shape}")
             print(f"dtypes: {x.dtype}, {sw.dtype}, {xyz.dtype} {target.dtype}")     
