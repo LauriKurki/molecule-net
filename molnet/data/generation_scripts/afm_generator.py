@@ -42,10 +42,21 @@ def create_afmulator():
     return afm
 
 
-def flatten_rotations(rots):
+def check_molecule(molecule_id, atomic_species):
+    """Check if a molecule is valid."""
+    xyz, Zs, qs, comment = io.loadXYZ(os.path.join(FLAGS.molecule_dir, f"{molecule_id}.xyz"))
+    # Return true if all Zs are in `atomic_species`
+    return np.all(np.isin(Zs, atomic_species))
+
+
+def flatten_rotations(rots, atomic_species=np.array([1, 6, 7, 8, 9])):
+    """Flatten the rotations dictionary and filter out invalid molecules."""
     rotations_flat = []
     for split, molecules in rots.items():
         for molecule_id in molecules:
+                molecule_is_valid = check_molecule(molecule_id, atomic_species)
+                if not molecule_is_valid:
+                    continue
                 rotations = molecules[molecule_id]
                 for rotation in rotations:
                     rotations_flat.append((molecule_id, rotation))
@@ -62,7 +73,7 @@ def generate_afms(
     end: int,
     output_dir: str,
 ) -> None:
-    """Generate AFMs for a slice in the dataset."""
+    """Generate AFMs for a chunk in the dataset."""
 
     logging.info(f"Saving to {output_dir}")
 
