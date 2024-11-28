@@ -91,9 +91,8 @@ def get_datasets(
         dataset_split = dataset_split.map(
             lambda x: _compute_atom_maps(
                 x,
-                z_cutoff=1.0,
-                map_resolution=0.125,
-                sigma=0.2,
+                z_cutoff=config.z_cutoff,
+                sigma=config.sigma,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=False
@@ -160,7 +159,6 @@ def _preprocess_images(
 def _compute_atom_maps(
     batch: Dict[str, tf.Tensor],
     z_cutoff: float = 1.0,
-    map_resolution: float = 0.125,
     sigma: float = 0.2,
 ) -> tf.Tensor:
     """Computes atom maps."""
