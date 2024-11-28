@@ -73,7 +73,7 @@ def get_datasets(
                 "sw": x["sw"],
             },
             num_parallel_calls=tf.data.AUTOTUNE,
-            deterministic=True,
+            deterministic=False,
         )
 
         # Preprocess images.
@@ -85,7 +85,18 @@ def get_datasets(
                 cutout_probs=config.cutout_probs,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
-            deterministic=True,
+            deterministic=False,
+        )
+
+        dataset_split = dataset_split.map(
+            lambda x: _compute_atom_maps(
+                x,
+                z_cutoff=1.0,
+                map_resolution=0.125,
+                sigma=0.3,
+            ),
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=False
         )
 
         # Batch the dataset.
@@ -105,17 +116,22 @@ def _preprocess_images(
     """Preprocesses images."""
     
     x = batch["images"]
+    x = tf.transpose(x, perm=[1, 0, 2])
+    sw = batch["sw"]
+    xyz = batch["xyz"]
+
+    # Shift xyz coordinates by scan window, so that scan window starts at (0, 0).
+    #shifted_xyz = xyz[:, :2] - sw[0, :2]
+    #shifted_xyz = tf.concat([shifted_xyz, xyz[:, 2:]], axis=-1)
+
+    # Also shift the scan window to start at (0, 0).
+    #shifted_sw = sw - sw[0]
 
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
 
     # Add channel dimension.
     x = x[..., tf.newaxis]
-
-    # Compute the atom map.
-    y = utils.compute_atom_maps(batch["xyz"], batch["sw"])
-    # Swap the species channel to last
-    y = tf.transpose(y, perm=[1, 2, 3, 0])
 
     # Interpolate to `interpolate_z` z slices
     if interpolate_z is not None:
@@ -126,20 +142,71 @@ def _preprocess_images(
         x = x + tf.random.normal(tf.shape(x), stddev=noise_std)
 
     # Apply rotation and flip augmentation.
-    x, y = augmentation.random_rotate_3d_stacks(x, y)
-    x, y = augmentation.random_flip_3d_stacks(x, y)
+    #x, xyz = augmentation.random_rotate_3d_stacks_with_coords(x, xyz)
+    #x, xyz = augmentation.random_flip_3d_stacks_with_coords(x, xyz, x.shape[:-1])
 
     # Create cutout augmentation.
     x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(5, 10))
 
-    # reshape atom map z dimension to match the image z dimension
-    z_size = x.shape[2]
-    y = y[..., -z_size:, :]
-
     sample = {
         "images": x,
-        "xyz": batch["xyz"],
-        "atom_map": y,
+        "xyz": xyz,
+        "sw": sw
     }
     
     return sample
+
+
+def _compute_atom_maps(
+    batch: Dict[str, tf.Tensor],
+    z_cutoff: float = 1.0,
+    map_resolution: float = 0.125,
+    sigma: float = 0.2,
+) -> tf.Tensor:
+    """Computes atom maps."""
+    xyz = batch["xyz"]
+
+    # Compute grids # TODO: REPLACE WITH COORDINATES FROM BATCH["sw"]
+    x = tf.linspace(tf.constant(0, dtype=tf.float32), 16, 128)
+    y = tf.linspace(tf.constant(0, dtype=tf.float32), 16, 128)
+    z = tf.range(-z_cutoff, 0, 0.1, dtype=tf.float32)
+    X, Y, Z = tf.meshgrid(x, y, z, indexing='ij')
+
+    # Compute atom maps.
+    maps_h = tf.zeros_like(X)
+    maps_c = tf.zeros_like(X)
+    maps_n = tf.zeros_like(X)
+    maps_o = tf.zeros_like(X)
+    maps_f = tf.zeros_like(X)
+
+    for atom in xyz:
+        if atom[-1] == 1:
+            maps_h += tf.exp(
+                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
+            )
+        elif atom[-1] == 6:
+            maps_c += tf.exp(
+                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
+            )
+        elif atom[-1] == 7:
+            maps_n += tf.exp(
+                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
+            )
+        elif atom[-1] == 8:
+            maps_o += tf.exp(
+                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
+            )
+        elif atom[-1] == 9:
+            maps_f += tf.exp(
+                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
+            )
+
+    atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=0)
+    atom_map = tf.transpose(atom_map, perm=[1, 2, 3, 0])
+
+    return {
+        "images": batch["images"],
+        "xyz": batch["xyz"],
+        "sw": batch["sw"],
+        "atom_map": atom_map,
+    }

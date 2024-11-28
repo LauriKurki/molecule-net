@@ -3,16 +3,11 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-import tensorflow as tf
-from tensorflow.python.ops.numpy_ops import np_config
-np_config.enable_numpy_behavior()
-
 import h5py
 
-from molnet.data._f90 import peaks
-from molnet.data._c.bindings import peak_dist
+from molnet.data._c.bindings import peak_dist_species
 
-from typing import List, Tuple, Optional
+from typing import Dict, Tuple, List
 
 import ctypes
 from ctypes import c_int, c_float, POINTER
@@ -32,8 +27,7 @@ clib.peak_dist.argtypes = [
 
 
 def compute_atom_maps(
-    xyz: np.ndarray,
-    sw: np.ndarray,
+    batch: Dict[str, np.ndarray],
     z_cutoff: float = 2.0,
     map_resolution: float = 0.125,
     sigma: float = 0.2,
@@ -52,43 +46,19 @@ def compute_atom_maps(
         `np.ndarray` of shape (n_species, 128, 128, z_cutoff/0.1). The atom maps.
     """
 
-    z_max = np.max(xyz[:, 2])
-    sw_size = np.ceil(sw[1,0] - sw[0,0])
-    z_cutoff = 2.0
-    map_resolution = 0.125
-    sigma = 0.2
-    xyz = xyz
+    # For each item in the batch, shift top atom to z=0
+    # batch is read-only, so we need to copy it
+    batch = {k: v.copy() for k, v in batch.items()}
+    for i in range(batch["xyz"].shape[0]):
+        batch["xyz"][i, :, 2] = batch["xyz"][i, :, 2] - batch["xyz"][i, :, 2].max()
 
-    def filter_by_species(sp):
-        # Create a boolean mask for rows matching the species
-        mask = xyz[:, -1] == sp
-        # Apply the mask to filter rows and select only position columns
-        filtered_positions = np.where(mask[:, None], xyz[:, :3], np.zeros_like(xyz[:, :3])-np.inf)
-        return filtered_positions
-
-    # Apply filtering and store in a numpy array
-    xyz_by_species = [filter_by_species(sp) for sp in np.unique(xyz[:, -1])]
-
-    assert xyz_by_species.shape == (
-        len(np.unique(xyz[:, -1])), xyz.shape[0], 3
-    ), (
-        xyz_by_species.shape,
-        len(np.unique(xyz[:, -1])),
-        xyz.shape[0],
-        3,
-    )
-
-    atom_map = _create_all_atom_position_maps_cpp(
-        xyz_by_species,
-        sw,
-        z_max,
-        sw_size,
-        z_cutoff,
-        map_resolution,
+    return peak_dist_species(
+        batch["xyz"],
+        (128, 128, int(z_cutoff / 0.1)),
+        [batch["sw"][0, 0, 0], batch["sw"][0, 0, 1], -z_cutoff],
+        [map_resolution, map_resolution, 0.1],
         sigma,
     )
-
-    return atom_map
 
 
 def _pad_xyzs(xyz, max_len):
