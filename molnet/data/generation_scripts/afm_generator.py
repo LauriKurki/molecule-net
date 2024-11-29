@@ -53,7 +53,7 @@ def flatten_rotations(rots, atomic_species=np.array([1, 6, 7, 8, 9])):
     """Flatten the rotations dictionary and filter out invalid molecules."""
     rotations_flat = []
     for split, molecules in rots.items():
-        for molecule_id in molecules:
+        for molecule_id in tqdm.tqdm(molecules):
                 molecule_is_valid = check_molecule(molecule_id, atomic_species)
                 if not molecule_is_valid:
                     continue
