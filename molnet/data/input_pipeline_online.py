@@ -170,7 +170,9 @@ def _compute_atom_maps(
     # For now, the molecule (and scan window) is shifted in _preprocess_images to start at (0, 0).
     x = tf.linspace(0., 16., 128)
     y = tf.linspace(0., 16., 128)
-    z = tf.linspace(z_max-z_cutoff, z_max, 10)
+    z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
+    z = tf.linspace(z_max-z_cutoff, z_max, z_steps)
+
     X, Y, Z = tf.meshgrid(x, y, z, indexing='xy')
 
     # Compute atom maps.
