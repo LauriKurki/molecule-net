@@ -18,5 +18,5 @@ def get_root_dir(local_scratch=None) -> Optional[str]:
     elif 'GHL96JPW91' in hostname:
         return "/Users/kurkil1/data/afms/"
     else:
-        return '/scratch/project_2005247/lauri/data/atom_maps'
+        return '/scratch/project_2005247/lauri/data/afms/'
     return None
