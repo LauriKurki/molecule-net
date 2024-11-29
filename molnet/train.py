@@ -22,7 +22,7 @@ from clu import (
 )
 
 from molnet import utils, train_state, hooks, loss
-from molnet.data import input_pipeline
+from molnet.data import input_pipeline_online
 from molnet.models import create_model
 
 from typing import Any, Dict, Iterator, Tuple
@@ -211,7 +211,7 @@ def train_and_evaluate(
     rng = jax.random.PRNGKey(config.rng_seed)
     #rng, data_rng = jax.random.split(rng)
     #datasets = input_pipeline.get_datasets(data_rng, config)
-    datasets = input_pipeline.get_datasets(config)
+    datasets = input_pipeline_online.get_datasets(config)
     train_ds = datasets["train"]
 
     # Create model
