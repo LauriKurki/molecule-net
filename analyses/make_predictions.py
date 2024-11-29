@@ -91,6 +91,8 @@ def make_predictions(
             state,
             batch
         )
+        # cast attention maps to float32
+        attention_maps = [attention.astype(jnp.float32) for attention in attention_maps]
         
         # Save the predictions
         jnp.savez(
