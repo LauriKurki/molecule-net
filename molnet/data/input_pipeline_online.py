@@ -141,8 +141,7 @@ def _preprocess_images(
         x = x + tf.random.normal(tf.shape(x), stddev=noise_std)
 
     # Apply rotation and flip augmentation.
-    #x, xyz = augmentation.random_rotate_3d_stacks_with_coords(x, xyz)
-    #x, xyz = augmentation.random_flip_3d_stacks_with_coords(x, xyz, x.shape[:-1])
+    x, shifted_xyz = augmentation.random_rotate_3d_stacks_with_coords(x, shifted_xyz)
 
     # Create cutout augmentation.
     x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(5, 10))

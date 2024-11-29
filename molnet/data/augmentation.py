@@ -96,7 +96,7 @@ def random_rotate_3d_stacks_with_coords(x, xyz):
         shifted_xy = coords[:, :2] - xy_mean
 
         # Rotate the zero-mean coordinates
-        rotated_xy = tf.matmul(shifted_xy, rotation_matrix)
+        rotated_xy = tf.matmul(shifted_xy, rotation_matrix, transpose_b=True)
 
         # Shift back to the original position
         rotated_xy = rotated_xy + xy_mean
