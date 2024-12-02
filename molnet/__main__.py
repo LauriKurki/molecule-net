@@ -1,13 +1,13 @@
 """Main file for running the training pipeline."""
 import os
 
-os.environ["XLA_FLAGS"] = (
+#os.environ["XLA_FLAGS"] = (
     #"--xla_gpu_enable_triton_softmax_fusion=true "
-    "--xla_gpu_triton_gemm_any=true "
+    #"--xla_gpu_triton_gemm_any=true "
     #"--xla_gpu_enable_async_collectives=true "
     #"--xla_gpu_enable_latency_hiding_scheduler=true "
     #"--xla_gpu_enable_highest_priority_async_stream=true "
-)
+#)
 
 from absl import app
 from absl import flags
@@ -40,6 +40,10 @@ def main(argv):
     # Hide any GPUs from TensorFlow. Otherwise TF might reserve memory and make
     # it unavailable to JAX.
     tf.config.experimental.set_visible_devices([], 'GPU')
+
+    # Set tf random seed
+    tf.random.set_seed(0)
+    tf.random.set_global_generator(tf.random.Generator.from_seed(0))
 
     logging.info('JAX process: %d / %d', jax.process_index(), jax.process_count())
     logging.info('JAX local devices: %r', jax.local_devices())

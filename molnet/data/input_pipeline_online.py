@@ -1,16 +1,10 @@
 import os
 import re
 
-from absl import logging
-
-import jax
-import flax
 import tensorflow as tf
-
-import chex
 import ml_collections
 
-from molnet.data import augmentation, utils
+from molnet.data import augmentation
 
 from typing import Dict, List, Sequence, Optional
 
@@ -51,19 +45,25 @@ def get_datasets(
     datasets = {}
     for split, files_split in files_by_split.items():
 
+        # Load the files.
         dataset_split = tf.data.Dataset.from_tensor_slices(files_split)
+        # Shuffle the files.
+        dataset_split = dataset_split.shuffle(1000)
         dataset_split = dataset_split.interleave(
             lambda path: tf.data.Dataset.load(path, element_spec=element_spec),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,
         )
 
-        # Shuffle the dataset.
-        if split == 'train':
-            dataset_split = dataset_split.shuffle(1000, seed=config.rng_seed, reshuffle_each_iteration=True)
-
         # Repeat the dataset.
         dataset_split = dataset_split.repeat()
+
+        # Shuffle the dataset.
+        if split == 'train':
+            dataset_split = dataset_split.shuffle(
+                1000,
+                reshuffle_each_iteration=True,
+            )
 
         # batches consist of a dict {'x': image, 'xyz': xyz, 'sw': scan window})
         dataset_split = dataset_split.map(
@@ -73,7 +73,7 @@ def get_datasets(
                 "sw": x["sw"],
             },
             num_parallel_calls=tf.data.AUTOTUNE,
-            deterministic=False,
+            deterministic=True,
         )
 
         # Preprocess images.
@@ -85,7 +85,7 @@ def get_datasets(
                 cutout_probs=config.cutout_probs,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
-            deterministic=False,
+            deterministic=True,
         )
 
         dataset_split = dataset_split.map(
@@ -95,7 +95,7 @@ def get_datasets(
                 sigma=config.sigma,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
-            deterministic=False
+            deterministic=True
         )
 
         # Batch the dataset.
