@@ -69,6 +69,61 @@ def random_rotate_3d_stacks(x, y):
     return x_rotated, y_rotated
 
 
+def random_rotate_3d_stacks_with_coords(x, xyz):
+    """
+    Randomly rotates a 3D stack of 2D images (x) and its corresponding xyz coordinates
+    in the XY plane by 0, 90, 180, or 270 degrees.
+
+    Args:
+        x (tf.Tensor): 4D tensor of shape (X, Y, Z, channels), the stack of images.
+        xyz (tf.Tensor): 2D tensor of shape (N, 3), where each row is (x, y, z), the coordinates.
+
+    Returns:
+        tuple: Rotated (x, xyz), where x is a 4D tensor and xyz is a 2D tensor.
+    """
+    # Define the possible rotation angles
+    rotations = [0, 90, 180, 270]
+    
+    # Randomly choose a rotation angle
+    rotation_angle = tf.random.shuffle(rotations)[0]
+
+
+    # Rotate the xyz coordinates
+    def rotate_coordinates(coords, rotation_matrix):
+
+        # Compute the mean of the x, y coordinates
+        xy_mean = tf.reduce_mean(coords[:, :2], axis=0, keepdims=True)
+        shifted_xy = coords[:, :2] - xy_mean
+
+        # Rotate the zero-mean coordinates
+        rotated_xy = tf.matmul(shifted_xy, rotation_matrix, transpose_b=True)
+
+        # Shift back to the original position
+        rotated_xy = rotated_xy + xy_mean
+
+        # Combine rotated x, y with unchanged z
+        return tf.concat([rotated_xy, coords[:, 2:]], axis=1)
+    
+    # Rotate the image stack and the xyz coordinates
+    if rotation_angle == 90:
+        rotated_x = tf.transpose(tf.reverse(x, axis=[0]), perm=[1, 0, 2, 3])
+        rotation_matrix = tf.constant([[0, -1], [1, 0]], dtype=tf.float32)
+        rotated_xyz = rotate_coordinates(xyz, rotation_matrix)
+    elif rotation_angle == 180:
+        rotated_x = tf.reverse(x, axis=[0, 1])
+        rotation_matrix = tf.constant([[-1, 0], [0, -1]], dtype=tf.float32)
+        rotated_xyz = rotate_coordinates(xyz, rotation_matrix)
+    elif rotation_angle == 270:
+        rotated_x = tf.transpose(tf.reverse(x, axis=[1]), perm=[1, 0, 2, 3])
+        rotation_matrix = tf.constant([[0, 1], [-1, 0]], dtype=tf.float32)
+        rotated_xyz = rotate_coordinates(xyz, rotation_matrix)
+    else:  # 0 degrees, no rotation
+        rotated_x = x
+        rotated_xyz = xyz
+
+    return rotated_x, rotated_xyz
+
+
 def random_flip_3d_stacks(images, targets):
     """
     Randomly flips two 3D stacks of 2D images along the X or Y axis.
@@ -112,6 +167,60 @@ def random_flip_3d_stacks(images, targets):
     )
 
     return images_flipped, targets_flipped
+
+
+def random_flip_3d_stacks_with_coords(x, xyz, image_shape):
+    """
+    Randomly flips a 3D stack of 2D images (x) and its corresponding xyz coordinates
+    along the x or y direction.
+
+    Args:
+        x (tf.Tensor): 4D tensor of shape (X, Y, Z, channels), the stack of images.
+        xyz (tf.Tensor): 2D tensor of shape (N, 3), where each row is (x, y, z), the coordinates.
+        image_shape (tuple): The shape of the stack (X, Y, Z) to compute flipped positions.
+
+    Returns:
+        tuple: Flipped (x, xyz), where x is a 4D tensor and xyz is a 2D tensor.
+    """
+
+    # Choose a random flip (0 or 1 corresponding to no flip or flip along the X or Y axis)
+    k = tf.random.uniform([], minval=0, maxval=3, dtype=tf.int32)
+
+    # Define flip operations
+    def flip_x(tensor):
+        return tf.reverse(tensor, axis=[0])
+    
+    def flip_y(tensor):
+        return tf.reverse(tensor, axis=[1])
+    
+    # Define flip operations for coordinates
+    def flip_coords_x(coords):
+        return tf.stack([image_shape[0] - coords[:, 0], coords[:, 1], coords[:, 2]], axis=1)
+    
+    def flip_coords_y(coords):
+        return tf.stack([coords[:, 0], image_shape[1] - coords[:, 1], coords[:, 2]], axis=1)
+    
+    # Apply the same flip to both stacks
+    x_flipped = tf.switch_case(
+        branch_index=k,
+        branch_fns=[
+            lambda: x,          # No flip
+            lambda: flip_x(x),  # Flip along the X axis
+            lambda: flip_y(x)   # Flip along the Y axis
+        ]
+    )
+
+    xyz_flipped = tf.switch_case(
+        branch_index=k,
+        branch_fns=[
+            lambda: xyz[:, :3],            # No flip
+            lambda: flip_coords_x(xyz),  # Flip along the X axis
+            lambda: flip_coords_y(xyz)   # Flip along the Y axis
+        ]
+    )
+    xyz_flipped = tf.concat([xyz_flipped, xyz[:, 3:]], axis=1)
+
+    return x_flipped, xyz_flipped
 
 
 def add_random_cutouts(images, cutout_probs, cutout_size_range):

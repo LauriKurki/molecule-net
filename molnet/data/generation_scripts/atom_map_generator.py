@@ -37,9 +37,9 @@ def generate_atom_maps(
     logging.info(f"Saving to {output_dir}")
 
     signature = {
-        "images": tf.TensorSpec(shape=(128, 128, 10), dtype=tf.float16),
+        "images": tf.TensorSpec(shape=(128, 128, 10), dtype=tf.float32),
         "xyz": tf.TensorSpec(shape=(None, 5), dtype=tf.float32),
-        "atom_map": tf.TensorSpec(shape=(len(atomic_numbers), 128, 128, 21), dtype=tf.float16)
+        "atom_map": tf.TensorSpec(shape=(len(atomic_numbers), 128, 128, 26), dtype=tf.float32)
     }
 
     def generator():
@@ -59,9 +59,9 @@ def generate_atom_maps(
                 continue
 
             yield {
-                "images": x.astype(np.float16),
-                "xyz": xyz.astype(np.float16),
-                "atom_map": atom_map.astype(np.float16),
+                "images": x.astype(np.float32),
+                "xyz": xyz.astype(np.float32),
+                "atom_map": atom_map.astype(np.float32),
             }
 
     dataset = tf.data.Dataset.from_generator(generator, output_signature=signature)
@@ -83,7 +83,10 @@ def main(args) -> None:
     valid_indices = edafm.get_valid_indices(FLAGS.data_dir, atomic_numbers)
 
     # Calculate dataset shapes
-    n_mol = len(valid_indices)
+    if FLAGS.n_molecules is not None:
+        n_mol = FLAGS.n_molecules
+    else:
+        n_mol = len(valid_indices)
     logging.info(f"Total length of the dataset: {n_mol}")
 
     # Create output directory
@@ -108,7 +111,7 @@ def main(args) -> None:
     ]
 
     tqdm.contrib.concurrent.process_map(
-        _generate_atom_maps_wrapper, args_list
+        _generate_atom_maps_wrapper, args_list, max_workers=FLAGS.num_workers
     )
 
     #for args in args_list:
@@ -122,5 +125,7 @@ if __name__=='__main__':
     flags.DEFINE_float('z_cutoff', 2.0, 'Z cutoff.')
     flags.DEFINE_float('map_resolution', 0.125, 'Map resolution.')
     flags.DEFINE_float('sigma', 0.2, 'Sigma.')
-    
+    flags.DEFINE_integer('n_molecules', None, 'Number of molecules to generate.')
+    flags.DEFINE_integer('num_workers', 8, 'Number of workers.')
+
     app.run(main)

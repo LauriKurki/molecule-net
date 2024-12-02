@@ -64,10 +64,10 @@ def save_predictions(
 
         for i in range(5):
             for j in range(5):
-                axs_pred[i, j].imshow(pred[..., i*2, j], cmap='gray')
+                axs_pred[i, j].imshow(pred[..., i*2, j], cmap='gray', vmin=0, vmax=1)
                 axs_pred[i, j].set_xticks([])
                 axs_pred[i, j].set_yticks([])
-                axs_target[i, j].imshow(target[..., i*2, j], cmap='gray')
+                axs_target[i, j].imshow(target[..., i*2, j], cmap='gray', vmin=0, vmax=1)
                 axs_target[i, j].set_xticks([])
                 axs_target[i, j].set_yticks([])
 
