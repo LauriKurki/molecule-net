@@ -216,11 +216,11 @@ def train_and_evaluate(
 
     # Create model
     logging.info("Creating model.")
-    batch = next(train_ds)
     rng, init_rng = jax.random.split(rng)
     model = create_model(config.model)
 
-    variables = model.init(init_rng, batch["images"], training=True)
+    dummy_input = jnp.empty((1, 128, 128, int(config.z_cutoff/0.1), 1))
+    variables = model.init(init_rng, dummy_input, training=False)
     params = variables["params"]
     batch_stats = variables["batch_stats"]
 

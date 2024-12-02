@@ -1,6 +1,5 @@
 import time
-import numpy as np
-import matplotlib.pyplot as plt
+import tensorflow as tf
 
 from molnet.data import utils
 from molnet.data import input_pipeline_online
@@ -22,14 +21,16 @@ class TestInputPipeline(absltest.TestCase):
         config.val_molecules = (50000, 60000)
         config.interpolate_input_z = 20
 
-        print(config)
+        # Set the random number generator seeds
+        tf.random.set_seed(config.rng_seed)
+        tf.random.set_global_generator(tf.random.Generator.from_seed(config.rng_seed))
 
         datasets = input_pipeline_online.get_datasets(config)
 
         trainloader = datasets["train"]
 
         times = []
-        for i in range(100):
+        for i in range(50):
             t0 = time.perf_counter()
             batch = next(trainloader)
             t1 = time.perf_counter()
@@ -38,7 +39,8 @@ class TestInputPipeline(absltest.TestCase):
             x, sw, xyz, target = batch["images"], batch["sw"], batch["xyz"], batch["atom_map"]
 
             print(f"shapes: {x.shape}, {sw.shape}, {xyz.shape} {target.shape}")
-            print(f"dtypes: {x.dtype}, {sw.dtype}, {xyz.dtype} {target.dtype}")     
+            print(f"dtypes: {x.dtype}, {sw.dtype}, {xyz.dtype} {target.dtype}")
+            print(f"means: {x.mean()}, {sw.mean()}, {xyz.mean()} {target.mean()}")
 
             if i < 5: continue
             times.append(t1 - t0)
