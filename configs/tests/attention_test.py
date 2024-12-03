@@ -1,4 +1,5 @@
 from configs import default
+from configs import attention_unet
 
 import ml_collections
 
@@ -19,7 +20,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.train_molecules = (0, 50000)
     config.val_molecules = (50000, 60000)
 
-    config.model = ml_collections.ConfigDict()
+    config.model = attention_unet.get_model_config()
     config.model.model_name = "attention-unet"
     config.model.dtype = "bfloat16"
     config.model.output_channels = 5
@@ -38,6 +39,8 @@ def get_config() -> ml_collections.ConfigDict:
     ]
     config.model.conv_activation = "relu"
     config.model.attention_activation = "sigmoid"
+    config.model.output_activation = "softmax"
+
     config.model.return_attention_maps = False
 
     return config
