@@ -90,7 +90,6 @@ class AttentionUNet(nn.Module):
 
     @nn.compact
     def __call__(self, x, training: bool):
-        x = x.astype(self.dtype)
         
         attention_maps = []
         skips = []
