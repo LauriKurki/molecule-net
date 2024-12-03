@@ -20,6 +20,9 @@ def get_config() -> ml_collections.ConfigDict:
     config.shuffle_datasets = True
     config.batch_size = 32
 
+    # Loss
+    config.loss_fn = "mse"
+
     # Training
     config.num_train_steps = 1_000_000
     config.num_eval_steps = 1000

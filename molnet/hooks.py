@@ -149,6 +149,7 @@ class PredictionHook:
     workdir: str
     predict_fn: Callable
     peak_threshold: float
+    preds_are_logits: bool
     writer: metric_writers.SummaryWriter
 
     def __call__(
@@ -217,7 +218,8 @@ class PredictionHook:
             inputs, targets, preds, xyzs, output_dir,
             peak_threshold=self.peak_threshold,
             scan_dim=scan_dim,
-            z_cutoff=z_cutoff
+            z_cutoff=z_cutoff,
+            preds_are_logits=self.preds_are_logits
         )
 
         # Disable writing of images for now

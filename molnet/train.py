@@ -25,7 +25,7 @@ from molnet import utils, train_state, hooks, loss
 from molnet.data import input_pipeline_online
 from molnet.models import create_model
 
-from typing import Any, Dict, Iterator, Tuple
+from typing import Any, Dict, Iterator, Tuple, Callable
 
 
 @flax.struct.dataclass
@@ -65,21 +65,22 @@ def batch_to_numpy(batch_tuple):
     return batch
 
 
-@jax.jit
+@functools.partial(jax.jit, static_argnums=(2,))
 def train_step(
     state: train_state.TrainState,
     batch: Dict[str, Any],
+    loss_fn: Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]
 ) -> Tuple[train_state.TrainState, metrics.Collection]:
     """Train step."""
 
-    def loss_fn(params):
+    def loss_wrapper(params):
         preds, updates = state.apply_fn(
             {'params': params, 'batch_stats': state.batch_stats},
             batch["images"],
             training=True,
             mutable='batch_stats',
         )
-        batch_loss = loss.mse(
+        batch_loss = loss_fn(
             preds,
             batch["atom_map"]
         )
@@ -87,7 +88,7 @@ def train_step(
         return batch_loss, (preds, updates)
 
     # Compute loss and gradients
-    grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+    grad_fn = jax.value_and_grad(loss_wrapper, has_aux=True)
     (batch_loss, (_, updates)), grads = grad_fn(state.params)
 
     batch_metrics = Metrics.single_from_model_output(
@@ -102,10 +103,11 @@ def train_step(
     return new_state, batch_metrics
 
 
-@jax.jit
+@functools.partial(jax.jit, static_argnums=(2,))
 def eval_step(
     state: train_state.TrainState,
     batch: Dict[str, Any],
+    loss_fn: Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]
 ):
     """Evaluation step."""
     preds = state.apply_fn(
@@ -113,7 +115,7 @@ def eval_step(
         batch["images"],
         training=False
     )
-    batch_loss = loss.mse(
+    batch_loss = loss_fn(
         preds,
         batch["atom_map"]
     )
@@ -126,6 +128,7 @@ def evaluate_model(
     state: train_state.TrainState,
     datasets: Dict[str, Iterator[Dict[str, Any]]],
     num_eval_steps: int,
+    loss_fn: Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]
 ):
     """Evaluate over all datasets."""
 
@@ -138,7 +141,7 @@ def evaluate_model(
             batch = next(dataloader)
            
             # Compute metrics for this batch.
-            batch_metrics = eval_step(state, batch)
+            batch_metrics = eval_step(state, batch, loss_fn)
             split_metrics = split_metrics.merge(batch_metrics)
 
         eval_metrics[split + "_eval"] = split_metrics
@@ -159,6 +162,7 @@ def predict_step(state, batch):
         axis=(1, 2, 3, 4),
     )
     return inputs, targets, preds, xyzs, loss_by_image
+
 
 def predict_with_state(state, dataloader, num_batches):
     losses = []
@@ -228,6 +232,8 @@ def train_and_evaluate(
 
     # Create optimizer
     tx = utils.create_optimizer(config)
+    # Create loss function
+    loss_fn = loss.get_loss_function(config.loss_fn)
 
     # Create training state
     state = train_state.TrainState.create(
@@ -259,6 +265,7 @@ def train_and_evaluate(
             state,
             datasets,
             config.num_eval_steps,
+            loss_fn
         ),
         writer=writer,
     )
@@ -272,6 +279,7 @@ def train_and_evaluate(
             num_batches,
         ),
         peak_threshold=config.peak_threshold,
+        preds_are_logits=config.model.output_activation == "log-softmax",
         writer=writer,
     )
 
@@ -316,7 +324,7 @@ def train_and_evaluate(
             break
 
         with jax.profiler.StepTraceAnnotation("train_step", step_num=step):
-            state, batch_metrics = train_step(state, batch)
+            state, batch_metrics = train_step(state, batch, loss_fn)
             train_metrics = train_metrics.merge(batch_metrics)
 
         logging.log_first_n(

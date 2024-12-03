@@ -25,6 +25,8 @@ def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
         return nn.gelu
     elif activation.lower() == "softmax":
         return nn.softmax
+    elif activation.lower() == "log-softmax":
+        return nn.log_softmax
     else:
         raise ValueError(f"Activation {activation} not supported.")
 
