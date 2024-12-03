@@ -11,7 +11,9 @@ from typing import Callable
 
 def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
     """Get the activation function based on the name."""
-    if activation.lower() == "relu":
+    if activation is None:
+        return None
+    elif activation.lower() == "relu":
         return nn.relu
     elif activation.lower() == "sigmoid":
         return nn.sigmoid
@@ -21,6 +23,8 @@ def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
         return nn.leaky_relu
     elif activation.lower() == "gelu":
         return nn.gelu
+    elif activation.lower() == "softmax":
+        return nn.softmax
     else:
         raise ValueError(f"Activation {activation} not supported.")
 
@@ -57,6 +61,7 @@ def create_model(
             decoder_kernel_size=config.decoder_kernel_size,            
             conv_activation=get_activation(config.conv_activation),
             attention_activation=get_activation(config.attention_activation),
+            output_activation=get_activation(config.output_activation),
             return_attention_maps=config.return_attention_maps
         )
 

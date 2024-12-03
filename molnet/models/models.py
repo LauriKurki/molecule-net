@@ -86,6 +86,7 @@ class AttentionUNet(nn.Module):
     decoder_kernel_size: Sequence[List[int]]
     conv_activation: Callable[[jnp.ndarray], jnp.ndarray]
     attention_activation: Callable[[jnp.ndarray], jnp.ndarray]
+    output_activation: Callable[[jnp.ndarray], jnp.ndarray]
     return_attention_maps: bool = False
 
     @nn.compact
@@ -153,7 +154,11 @@ class AttentionUNet(nn.Module):
             name="output"
         )(x)
 
+        # Cast to float32 before output activation
         x = x.astype(jnp.float32)
+
+        if self.output_activation is not None:
+            x = self.output_activation(x)
 
         if self.return_attention_maps:
             return x, attention_maps
