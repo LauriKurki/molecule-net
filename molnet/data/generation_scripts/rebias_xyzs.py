@@ -296,7 +296,7 @@ def main(argv):
         for i in range(num_workers)
     ]
 
-    # Create a shared list for the rotations
+    # Create a shared dict for the rotations
     manager = Manager()
     rotations = manager.dict()
 
@@ -309,6 +309,9 @@ def main(argv):
 
     total_rotations = get_total_number_of_keys_in_dict(rotations)
     logging.info(f"Number of rotations created: {total_rotations}")
+
+    # Convert the shared dictionary to a normal dictionary
+    rotations = dict(rotations)
 
     # Save the rotations
     with open(save_path, 'wb') as f:
