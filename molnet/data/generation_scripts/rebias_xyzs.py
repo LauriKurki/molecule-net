@@ -268,9 +268,9 @@ def main(argv):
 
     # Define the parameters for the rotation generation
     flat = True
-    flat_dist_tol = 0.5
-    elem_dist_tol = 0.7
-    angle_tolerance = 5
+    flat_dist_tol = FLAGS.flat_dist_tol
+    elem_dist_tol = FLAGS.elem_dist_tol
+    angle_tolerance = FLAGS.angle_tolerance
     plane_bias = {
         'H' : 0.0,
         'C' : 0.0,
@@ -285,7 +285,7 @@ def main(argv):
         'O' : 0.1,
         'F' : 0.5,
     }
-    flat_num_atoms = 6
+    flat_num_atoms = FLAGS.flat_num_atoms
     valid_elements = np.array([1, 6, 7, 8, 9])
 
     # Set random seeds for reproducibility
@@ -323,6 +323,11 @@ def main(argv):
 if __name__ == "__main__":
     flags.DEFINE_string("database_path", None, "Path to the database.")
     flags.DEFINE_string("save_path", None, "Path to the save directory.")
+    flags.DEFINE_float("angle_tolerance", 5, "Angle tolerance.")
+    flags.DEFINE_float("elem_dist_tol", 0.7, "Element distance tolerance.")
+    flags.DEFINE_float("flat_dist_tol", 0.2, "Flat distance tolerance.")
+    flags.DEFINE_integer("flat_num_atoms", 6, "Flat number of atoms.")
+
     flags.DEFINE_integer("num_workers", 1, "Number of workers.")
 
     flags.mark_flags_as_required(["database_path", "save_path"])
