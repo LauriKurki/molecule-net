@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 from ppafm import io
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 elements = ['H' , 'He',
             'Li', 'Be',  'B',  'C',  'N',  'O',  'F', 'Ne', 
@@ -37,6 +37,13 @@ elements = ['H' , 'He',
 ]
 
 FLAGS = flags.FLAGS
+
+def get_total_number_of_keys_in_dict(d):
+    total = 0
+    for k in d:
+        total += len(d[k])
+    return total
+
 
 # https://stackoverflow.com/a/8453514
 def random_unit_vector():
@@ -94,7 +101,7 @@ def get_convex_hull_eqs(xyz, angle_tolerance=5):
     for i, angle in enumerate(angles):
         if i in bad_inds:
             continue
-        inds = np.where(angle < 5)[0]
+        inds = np.where(angle < angle_tolerance)[0]
         for ind in inds:
             if ind == i:
                 continue
@@ -214,7 +221,7 @@ def choose_rotations_bias(xyz, flat=True, plane_bias={'F': 1, 'Cl': 0.8, 'Br': 1
     return rotations
 
 def return_rotations(
-    shared_rotations: List[np.ndarray],
+    shared_rotations: Dict[str, List[np.ndarray]],
     filenames: List[str],
     valid_elements: List[str],
     flat: bool = True,
@@ -242,7 +249,7 @@ def return_rotations(
         )
         if len(rots) == 0:
             continue
-        shared_rotations.append({cid: rots})
+        shared_rotations[cid] = rots
 
 def rotations_wrapper(shared_rotations, args):
     return return_rotations(shared_rotations, *args)
@@ -250,8 +257,8 @@ def rotations_wrapper(shared_rotations, args):
 def main(argv):
 
     # Define the path to the database and the save directory
-    save_dir = FLAGS.save_dir
-    os.makedirs(os.path.dirname(save_dir), exist_ok=True)
+    save_path = FLAGS.save_path
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     database_path = FLAGS.database_path
     filenames = [
         os.path.join(database_path, f)
@@ -296,7 +303,7 @@ def main(argv):
 
     # Create a shared list for the rotations
     manager = Manager()
-    rotations = manager.list()
+    rotations = manager.dict()
 
     # Run the parallel processing
     tqdm.contrib.concurrent.process_map(
@@ -305,14 +312,18 @@ def main(argv):
         max_workers=num_workers
     )
 
-    logging.info(f"Number of rotations created: {len(rotations)}")
+    total_rotations = get_total_number_of_keys_in_dict(rotations)
+    logging.info(f"Number of rotations created: {total_rotations}")
+
+    # Save the rotations
+
 
 
 if __name__ == "__main__":
     flags.DEFINE_string("database_path", None, "Path to the database.")
-    flags.DEFINE_string("save_dir", None, "Path to the save directory.")
+    flags.DEFINE_string("save_path", None, "Path to the save directory.")
     flags.DEFINE_integer("num_workers", 1, "Number of workers.")
 
-    flags.mark_flags_as_required(["database_path", "save_dir"])
+    flags.mark_flags_as_required(["database_path", "save_path"])
 
     app.run(main)
