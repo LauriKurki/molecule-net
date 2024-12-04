@@ -3,6 +3,8 @@ os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
 import tqdm
 import tqdm.contrib.concurrent
 
+import random
+
 import tensorflow as tf
 import numpy as np
 
@@ -153,6 +155,10 @@ def main(argv) -> None:
     rotations = np.load(FLAGS.rotations_fname, allow_pickle=True)
     rotations = flatten_rotations(rotations)
     logging.info(f"Loaded {len(rotations)} unique rotations.")
+
+    # Set seed for reproducibility and shuffle the rotations
+    #random.seed(0)
+    #random.shuffle(rotations)
 
     # Calculate dataset shapes
     if FLAGS.n_molecules is not None:
