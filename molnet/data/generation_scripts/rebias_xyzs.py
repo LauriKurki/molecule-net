@@ -147,7 +147,6 @@ def choose_rotations_bias(xyz, flat=True, plane_bias={'F': 1, 'Cl': 0.8, 'Br': 1
 
     n_vecs = []
 
-    plane_bias = _convert_elemements(plane_bias)
     random_bias = _convert_elemements(random_bias)
     
     if len(xyz) > 3:
@@ -174,6 +173,7 @@ def choose_rotations_bias(xyz, flat=True, plane_bias={'F': 1, 'Cl': 0.8, 'Br': 1
         eqs = np.delete(eqs, planar_seg_inds, axis=0)
 
     if plane_bias:
+        plane_bias = _convert_elemements(plane_bias)
         plane_elems = get_plane_elements(xyz, eqs, dist_tol=elem_dist_tol)
         for eq, elems in zip(eqs, plane_elems):
             for e, p in plane_bias.items():
@@ -182,6 +182,7 @@ def choose_rotations_bias(xyz, flat=True, plane_bias={'F': 1, 'Cl': 0.8, 'Br': 1
                     break
 
     if random_bias:
+        random_bias = _convert_elemements(random_bias)
         elems = set(xyz[vertices,-1].astype(int))
         for e in random_bias:
             if e not in elems:
@@ -266,20 +267,22 @@ def main(argv):
     flat_dist_tol = FLAGS.flat_dist_tol
     elem_dist_tol = FLAGS.elem_dist_tol
     angle_tolerance = FLAGS.angle_tolerance
-    plane_bias = {
-        'H' : 0.0,
-        'C' : 0.0,
-        'N' : 0.1,
-        'O' : 0.0,
-        'F' : 0.5,
-    }
-    random_bias = {
-        'H' : 0.1,
-        'C' : 0.0,
-        'N' : 0.4,
-        'O' : 0.1,
-        'F' : 0.5,
-    }
+    #plane_bias = {
+    #    'H' : 0.0,
+    #    'C' : 0.0,
+    #    'N' : 0.1,
+    #    'O' : 0.0,
+    #    'F' : 0.5,
+    #}
+    #random_bias = {
+    #    'H' : 0.1,
+    #    'C' : 0.0,
+    #    'N' : 0.4,
+    #    'O' : 0.1,
+    #    'F' : 0.5,
+    #}
+    plane_bias = None
+    random_bias = None
     flat_num_atoms = FLAGS.flat_num_atoms
     valid_elements = np.array([1, 6, 7, 8, 9])
 
@@ -292,7 +295,16 @@ def main(argv):
 
     # Create argument list for the parallel processing
     args_list = [
-        (filenames[i::num_workers], valid_elements, flat, plane_bias, random_bias, angle_tolerance, elem_dist_tol, flat_dist_tol, flat_num_atoms)
+        (
+            filenames[i::num_workers],
+            valid_elements,
+            flat,
+            plane_bias,
+            random_bias,
+            angle_tolerance,
+            elem_dist_tol,
+            flat_dist_tol,
+            flat_num_atoms)
         for i in range(num_workers)
     ]
 
