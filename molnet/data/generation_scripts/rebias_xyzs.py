@@ -147,8 +147,6 @@ def choose_rotations_bias(xyz, flat=True, plane_bias={'F': 1, 'Cl': 0.8, 'Br': 1
 
     n_vecs = []
 
-    random_bias = _convert_elemements(random_bias)
-    
     if len(xyz) > 3:
         try:
             eqs, hull = get_convex_hull_eqs(xyz, angle_tolerance=angle_tolerance)
