@@ -16,11 +16,6 @@ import numpy as np
 from scipy.spatial import ConvexHull
 from scipy.spatial.distance import pdist, squareform
 
-import ase
-import ase.io
-from ase.visualize import view, plot
-import matplotlib.pyplot as plt
-
 from ppafm import io
 
 from typing import List, Tuple, Dict
