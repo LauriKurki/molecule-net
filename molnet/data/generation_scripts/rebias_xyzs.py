@@ -316,7 +316,8 @@ def main(argv):
     logging.info(f"Number of rotations created: {total_rotations}")
 
     # Save the rotations
-
+    with open(save_path, 'wb') as f:
+        pickle.dump(rotations, f)
 
 
 if __name__ == "__main__":
