@@ -3,6 +3,8 @@ os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
 import tqdm
 import tqdm.contrib.concurrent
 
+import random
+
 import tensorflow as tf
 import numpy as np
 
@@ -52,14 +54,12 @@ def check_molecule(molecule_id, atomic_species):
 def flatten_rotations(rots, atomic_species=np.array([1, 6, 7, 8, 9])):
     """Flatten the rotations dictionary and filter out invalid molecules."""
     rotations_flat = []
-    for split, molecules in rots.items():
-        for molecule_id in tqdm.tqdm(molecules):
-                molecule_is_valid = check_molecule(molecule_id, atomic_species)
-                if not molecule_is_valid:
-                    continue
-                rotations = molecules[molecule_id]
-                for rotation in rotations:
-                    rotations_flat.append((molecule_id, rotation))
+    for molecule_id, rotations in tqdm.tqdm(rots.items()):
+        molecule_is_valid = check_molecule(molecule_id, atomic_species)
+        if not molecule_is_valid:
+            continue
+        for rotation in rotations:
+            rotations_flat.append((molecule_id, rotation))
 
     return rotations_flat
 
@@ -155,6 +155,10 @@ def main(argv) -> None:
     rotations = np.load(FLAGS.rotations_fname, allow_pickle=True)
     rotations = flatten_rotations(rotations)
     logging.info(f"Loaded {len(rotations)} unique rotations.")
+
+    # Set seed for reproducibility and shuffle the rotations
+    #random.seed(0)
+    #random.shuffle(rotations)
 
     # Calculate dataset shapes
     if FLAGS.n_molecules is not None:

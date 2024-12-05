@@ -189,6 +189,7 @@ def save_predictions_as_molecules(
     z_cutoff: float = 1.0,
     peak_threshold: float = 0.5,
     start_save_idx: int = 0,
+    preds_are_logits: bool = False
 ) -> None:
 
     n_samples = inputs.shape[0]
@@ -198,6 +199,9 @@ def save_predictions_as_molecules(
         target = targets[sample]
         pred = preds[sample]
         xyz = xyzs[sample]
+
+        if preds_are_logits:
+            pred = jnp.exp(pred)
 
         fig = plt.figure(figsize=(18, 6), layout='constrained')
         subfig1, subfig2 = fig.subfigures(1, 2, wspace=0.07)
