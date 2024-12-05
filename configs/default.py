@@ -5,9 +5,9 @@ def get_config() -> ml_collections.ConfigDict:
     config = ml_collections.ConfigDict()
     config.debug = False
     config.root_dir = None
+    config.dataset = "afms_rebias"
 
     # Dataset
-    config.dataset = "edafm"
     config.rng_seed = 0
     config.noise_std = 0.1
     config.sigma = 0.2

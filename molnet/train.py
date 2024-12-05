@@ -21,6 +21,7 @@ from clu import (
     periodic_actions
 )
 
+from configs import root_dirs
 from molnet import utils, train_state, hooks, loss
 from molnet.data import input_pipeline_online
 from molnet.models import create_model
@@ -204,6 +205,9 @@ def train_and_evaluate(
     # Create writer for logs
     writer = metric_writers.create_default_writer(workdir)
     writer.write_hparams(config.to_dict())
+
+    # Set root dir
+    config.root_dir = root_dirs.get_root_dir(config.dataset)
 
     # Save config to workdir
     config_path = os.path.join(workdir, "config.yaml")

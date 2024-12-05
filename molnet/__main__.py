@@ -59,7 +59,6 @@ def main(argv):
     )
 
     config = FLAGS.config
-    config.root_dir = root_dirs.get_root_dir()
 
     train.train_and_evaluate(config, FLAGS.workdir)
     

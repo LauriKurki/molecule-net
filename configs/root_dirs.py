@@ -4,19 +4,16 @@ from typing import Optional
 import os
 
 
-def get_root_dir(local_scratch=None) -> Optional[str]:
+def get_root_dir(dataset) -> Optional[str]:
     """Get the root directory for the dataset."""
     hostname, username = os.uname()[1], os.environ.get("USER")
 
-    if local_scratch is not None:
-        return local_scratch
-
     if 'triton' in hostname:
-        return '/scratch/phys/project/sin/lauri/data/atom_maps/'
+        return f'/scratch/phys/project/sin/lauri/data/{dataset}/'
     elif 'd22' in hostname:
-        return "/l/data/molnet/afms/"
+        return f"/l/data/molnet/{dataset}/"
     elif 'GHL96JPW91' in hostname:
-        return "/Users/kurkil1/data/afms/"
+        return f"/Users/kurkil1/data/{dataset}/"
     else:
-        return '/scratch/project_2005247/lauri/data/afms/'
+        return f'/scratch/project_2005247/lauri/data/{dataset}/'
     return None

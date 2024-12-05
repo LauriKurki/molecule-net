@@ -159,6 +159,7 @@ def _compute_atom_maps(
     batch: Dict[str, tf.Tensor],
     z_cutoff: float = 1.0,
     sigma: float = 0.2,
+    z_top_space: float = 0.5,
 ) -> tf.Tensor:
     """Computes atom maps."""
     xyz = batch["xyz"]
@@ -169,8 +170,8 @@ def _compute_atom_maps(
     # For now, the molecule (and scan window) is shifted in _preprocess_images to start at (0, 0).
     x = tf.linspace(0., 16., 128)
     y = tf.linspace(0., 16., 128)
-    z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
-    z = tf.linspace(z_max-z_cutoff, z_max, z_steps)
+    z_steps = tf.cast((z_cutoff + z_top_space)/ 0.1, tf.int32)
+    z = tf.linspace(z_max-z_cutoff, z_max+z_top_space, z_steps)
 
     X, Y, Z = tf.meshgrid(x, y, z, indexing='xy')
 

@@ -13,7 +13,7 @@ from configs.tests import attention_test
 class TestInputPipeline(absltest.TestCase):
     def test_input(self):
         config = attention_test.get_config()
-        config.root_dir = root_dirs.get_root_dir()
+        config.root_dir = root_dirs.get_root_dir(config.dataset)
         config.num_workers = 8
 
         config.batch_size = 12
@@ -46,7 +46,7 @@ class TestInputPipeline(absltest.TestCase):
             times.append(t1 - t0)
 
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
-            time.sleep(0.1)
+            time.sleep(0.2)
 
 
         print(f"Average time to get batch: {sum(times)/len(times)*1e3:.2f} ms")
