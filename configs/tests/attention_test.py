@@ -39,7 +39,7 @@ def get_config() -> ml_collections.ConfigDict:
     ]
     config.model.conv_activation = "relu"
     config.model.attention_activation = "sigmoid"
-    config.model.output_activation = "softmax"
+    config.model.output_activation = None
 
     config.model.return_attention_maps = False
 
