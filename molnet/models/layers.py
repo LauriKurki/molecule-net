@@ -26,7 +26,7 @@ class ResBlock(nn.Module):
             strides=self.strides,
             dtype=self.dtype
         )(x)
-        x = nn.BatchNorm(use_running_average=not training, dtype=self.dtype)(x)
+        x = nn.BatchNorm(use_running_average=not training)(x)
         x = self.activation(x)
         x = nn.Conv(
             features=self.channels,
@@ -34,7 +34,7 @@ class ResBlock(nn.Module):
             strides=self.strides,
             dtype=self.dtype
         )(x)
-        x = nn.BatchNorm(use_running_average=not training, dtype=self.dtype)(x)
+        x = nn.BatchNorm(use_running_average=not training)(x)
 
         # Projection 
         if x.shape != residual.shape:
@@ -90,9 +90,9 @@ class AttentionBlock3D(nn.Module):
             nn.Conv(
                 1,
                 kernel_size=self.kernel_size,
-                dtype=jnp.float32
+                dtype=self.dtype
             )(a)
-        ).astype(self.dtype)
+        )
 
         # Apply the attention
         y = a * x
