@@ -12,6 +12,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.noise_std = 0.1
     config.sigma = 0.2
     config.z_cutoff = 2.0
+    config.gaussian_factor = 1.0
     config.interpolate_input_z = 20
     config.cutout_probs = [0.5, 0.3, 0.1, 0.05, 0.05]
     config.max_atoms = 54

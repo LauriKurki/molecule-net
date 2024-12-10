@@ -93,6 +93,7 @@ def get_datasets(
                 x,
                 z_cutoff=config.z_cutoff,
                 sigma=config.sigma,
+                factor=config.gaussian_factor,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True
@@ -141,7 +142,7 @@ def _preprocess_images(
         x = x + tf.random.normal(tf.shape(x), stddev=noise_std)
 
     # Apply rotation and flip augmentation.
-    x, shifted_xyz = augmentation.random_rotate_3d_stacks_with_coords(x, shifted_xyz)
+    #x, shifted_xyz = augmentation.random_rotate_3d_stacks_with_coords(x, shifted_xyz)
 
     # Create cutout augmentation.
     x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(5, 10))
@@ -159,7 +160,7 @@ def _compute_atom_maps(
     batch: Dict[str, tf.Tensor],
     z_cutoff: float = 1.0,
     sigma: float = 0.2,
-    z_top_space: float = 0.5,
+    factor: float = 5.0,
 ) -> tf.Tensor:
     """Computes atom maps."""
     xyz = batch["xyz"]
@@ -170,8 +171,12 @@ def _compute_atom_maps(
     # For now, the molecule (and scan window) is shifted in _preprocess_images to start at (0, 0).
     x = tf.linspace(0., 16., 128)
     y = tf.linspace(0., 16., 128)
-    z_steps = tf.cast((z_cutoff + z_top_space)/ 0.1, tf.int32)
-    z = tf.linspace(z_max-z_cutoff, z_max+z_top_space, z_steps)
+    z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
+    #z = tf.linspace(z_max-z_cutoff, z_max, z_steps)
+    z = tf.linspace(z_max, z_max-z_cutoff, z_steps)
+
+    #z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
+    #z = tf.linspace(z_max-z_cutoff, z_max, z_steps)
 
     X, Y, Z = tf.meshgrid(x, y, z, indexing='xy')
 
@@ -183,26 +188,23 @@ def _compute_atom_maps(
     maps_f = tf.zeros_like(X)
 
     for atom in xyz:
+        m = tf.exp(
+            -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
+        )
+        
+        # all values below 1e-4 to 0
+        m = tf.where(m < 1e-2, tf.zeros_like(m), m*factor)
+
         if atom[-1] == 1:
-            maps_h += tf.exp(
-                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
-            )
+            maps_h += m
         elif atom[-1] == 6:
-            maps_c += tf.exp(
-                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
-            )
+            maps_c += m
         elif atom[-1] == 7:
-            maps_n += tf.exp(
-                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
-            )
+            maps_n += m
         elif atom[-1] == 8:
-            maps_o += tf.exp(
-                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
-            )
+            maps_o += m
         elif atom[-1] == 9:
-            maps_f += tf.exp(
-                -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
-            )
+            maps_f += m
 
     atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=0)
     atom_map = tf.transpose(atom_map, perm=[1, 2, 3, 0])
