@@ -17,7 +17,7 @@ def normalize_images(images):
     xstd = tf.math.reduce_std(images, axis=(0, 1), keepdims=True)
 
     # Normalize each slice separately
-    return (images - xmean) / (xstd + 1e-9)
+    return (images - xmean) / xstd
 
 
 def random_rotate_3d_stacks(x, y):

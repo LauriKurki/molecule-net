@@ -33,8 +33,8 @@ class Trainer(GeneratorAFMtrainer):
 def create_afmulator():
     afm = AFMulator(
         pixPerAngstrome=8,
-        scan_dim=(128, 128, 19),
-        scan_window=((0., 0., 5.), (15.9, 15.9, 6.9)),
+        scan_dim=(128, 128, 29),
+        scan_window=((0., 0., 5.), (15.9, 15.9, 7.9)),
         iZPP=8,
         QZs=[0.1, 0.0, -0.1, 0.0],
         Qs=[-10, 20, -10, 0],
@@ -54,6 +54,10 @@ def check_molecule(molecule_id, atomic_species):
 def flatten_rotations(rots, atomic_species=np.array([1, 6, 7, 8, 9])):
     """Flatten the rotations dictionary and filter out invalid molecules."""
     rotations_flat = []
+    # If rots dictionary has keys 'train', 'val' and 'test', flatten them all into one dictionary
+    if 'train' in rots.keys():
+        rots = {**rots['train'], **rots['val'], **rots['test']}
+    
     for molecule_id, rotations in tqdm.tqdm(rots.items()):
         molecule_is_valid = check_molecule(molecule_id, atomic_species)
         if not molecule_is_valid:
@@ -78,7 +82,7 @@ def generate_afms(
     logging.info(f"Saving to {output_dir}")
 
     signature = {
-        "x": tf.TensorSpec(shape=(128, 128, 10), dtype=tf.float32),
+        "x": tf.TensorSpec(shape=(128, 128, 20), dtype=tf.float32),
         "xyz": tf.TensorSpec(shape=(None, 5), dtype=tf.float32),
         "sw": tf.TensorSpec(shape=(2, 3), dtype=tf.float32),
     }
@@ -128,6 +132,8 @@ def generate_afms(
             # Yield items in the batch one by one
             for i in range(len(Xs)):
 
+                logging.log_first_n(logging.INFO, f"Xs shape: {Xs.shape}", 1)
+
                 sample = {
                     "x": Xs[i, 0],
                     "xyz": xyzs[i],
@@ -164,7 +170,7 @@ def main(argv) -> None:
     if FLAGS.n_molecules is not None:
         n_mol = FLAGS.n_molecules
     else:
-        n_mol = len(rotations)
+        n_mol = len(rotations) - len(rotations) % FLAGS.chunk_size
 
     logging.info(f"Total length of the dataset: {n_mol}")
 
