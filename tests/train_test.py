@@ -40,9 +40,7 @@ class TrainTest(parameterized.TestCase):
 
         # Get the config
         config = ALL_CONFIGS[config_name]
-        config.root_dir = root_dirs.get_root_dir()
-        config.loss_fn = "kl_divergence"
-        config.model.output_activation = "log-softmax"
+        config.root_dir = root_dirs.get_root_dir(config.dataset)
 
         # Create a temporary directory to store the results
         workdir = tempfile.mkdtemp()
