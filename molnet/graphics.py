@@ -49,7 +49,7 @@ def save_predictions(
         fig = plt.figure(figsize=(18, 10), layout='constrained')
         subfigs = fig.subfigures(1, 5, wspace=0.07, width_ratios=[1, 2, 2, 1, 1])
 
-        fig.suptitle(f'mse: {loss:.4f}', fontsize=16)
+        fig.suptitle(f'mse: {loss:.3e}', fontsize=16)
         subfigs[0].suptitle(f'Input')
         subfigs[1].suptitle(f'Prediction')
         subfigs[2].suptitle(f'Target')
@@ -62,14 +62,16 @@ def save_predictions(
         axs_pred_sum = subfigs[3].subplots(5, 1)
         axs_target_sum = subfigs[4].subplots(5, 1)
 
+        vmax = target.max()
+
         n_heights = inp.shape[-2]
         for i in range(5):
             height = n_heights // 5 * i
             for j in range(5):
-                axs_pred[i, j].imshow(pred[..., height, j], cmap='gray', vmin=0, vmax=1)
+                axs_pred[i, j].imshow(pred[..., height, j], cmap='gray', vmin=0, vmax=vmax, origin='lower')
                 axs_pred[i, j].set_xticks([])
                 axs_pred[i, j].set_yticks([])
-                axs_target[i, j].imshow(target[..., height, j], cmap='gray', vmin=0, vmax=1)
+                axs_target[i, j].imshow(target[..., height, j], cmap='gray', vmin=0, vmax=vmax, origin='lower')
                 axs_target[i, j].set_xticks([])
                 axs_target[i, j].set_yticks([])
 
@@ -77,9 +79,9 @@ def save_predictions(
         axs_input[-1].set_ylabel('Close')
         for i in range(5):
             height = n_heights // 5 * i
-            axs_input[i].imshow(inp[..., height, 0], cmap='gray')
-            ps = axs_pred_sum[i].imshow(jnp.sum(pred[..., height, :], axis=-1), cmap='gray')
-            ts = axs_target_sum[i].imshow(jnp.sum(target[..., height, :], axis=-1), cmap='gray')
+            axs_input[i].imshow(inp[..., height, 0], cmap='gray', origin='lower')
+            ps = axs_pred_sum[i].imshow(jnp.sum(pred[..., height, :], axis=-1), cmap='gray', origin='lower')
+            ts = axs_target_sum[i].imshow(jnp.sum(target[..., height, :], axis=-1), cmap='gray', origin='lower')
         
             for ax in [axs_input[i], axs_pred_sum[i], axs_target_sum[i]]:
                 ax.set_aspect('equal')
@@ -121,18 +123,18 @@ def save_simple_predictions(
         target = targets[sample]
 
         fig, axs = plt.subplots(1, 3, figsize=(18, 6))
-        axs[0].imshow(inp, cmap='gray')
+        axs[0].imshow(inp, cmap='gray', origin='lower')
         axs[0].set_title('Input')
         axs[0].set_xticks([])
         axs[0].set_yticks([])
 
-        im = axs[1].imshow(pred, cmap='gray')
+        im = axs[1].imshow(pred, cmap='gray', origin='lower')
         axs[1].set_title('Prediction')
         axs[1].set_xticks([])
         axs[1].set_yticks([])
         plt.colorbar(im, ax=axs[1], location='right')
 
-        im = axs[2].imshow(target, cmap='gray')
+        im = axs[2].imshow(target, cmap='gray', origin='lower')
         axs[2].set_title('Target')
         axs[2].set_xticks([])
         axs[2].set_yticks([])
@@ -170,7 +172,7 @@ def save_attention_maps(
 
             axs = subfigs[i+1].subplots(1, 10)
             for height in range(n_heights):
-                axs[height].imshow(attention_map[sample, ..., height, :].mean(axis=-1), cmap='gray')
+                axs[height].imshow(attention_map[sample, ..., height, :].mean(axis=-1), cmap='gray', origin='lower')
                 axs[height].set_xticks([])
                 axs[height].set_yticks([])
 
@@ -200,6 +202,10 @@ def save_predictions_as_molecules(
         pred = preds[sample]
         xyz = xyzs[sample]
 
+        # Flip pred and target z axes
+        target = target[..., ::-1, :]
+        pred = pred[..., ::-1, :]
+
         if preds_are_logits:
             pred = jnp.exp(pred)
 
@@ -210,7 +216,7 @@ def save_predictions_as_molecules(
             ax = subfig1.add_subplot(2, 5, i+1)
             if i==0: ax.set_title('Input, far')
             if i==9: ax.set_title('Close')
-            ax.imshow(inp[..., i, 0], cmap='gray', origin='lower')
+            ax.imshow(inp[..., -10+i, 0], cmap='gray', origin='lower')
             ax.axis('off')
 
         axes = subfig2.subplots(2, 3)
