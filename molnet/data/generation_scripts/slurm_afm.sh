@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=project_2005247
 #SBATCH --job-name=generate-maps
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 #SBATCH --output=log_gen.out
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:v100:1,nvme:1
@@ -23,7 +23,7 @@ echo "Done, starting AFM simulation"
 srun python afm_generator.py \
     --molecule_dir $LOCAL_SCRATCH/mol_database/ \
     --rotations_fname $LOCAL_SCRATCH/rotations_HCNOF_tol_0.3.pickle \
-    --output_dir /scratch/project_2005247/lauri/data/afms_rebias/ \
+    --output_dir /scratch/project_2005247/lauri/data/afms_rebias_z2.0/ \
     --chunk_size 1024 \
     --batch_size 128 \
 
