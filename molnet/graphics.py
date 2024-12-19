@@ -161,7 +161,7 @@ def save_attention_maps(
         subfigs = fig.subfigures(n_maps+1, 1, wspace=0.07)
         subfigs[0].suptitle('Input')
 
-        axs_input = subfigs[0].subplots(1, 10)
+        axs_input = subfigs[0].subplots(1, n_heights)
         for height in range(n_heights):
             axs_input[height].imshow(inputs[sample, ..., height, 0], cmap='gray')
             axs_input[height].set_xticks([])
@@ -170,7 +170,7 @@ def save_attention_maps(
         for i, attention_map in enumerate(attention_maps):
             subfigs[i+1].suptitle(f'Attention map {i}')
 
-            axs = subfigs[i+1].subplots(1, 10)
+            axs = subfigs[i+1].subplots(1, n_heights)
             for height in range(n_heights):
                 axs[height].imshow(attention_map[sample, ..., height, :].mean(axis=-1), cmap='gray', origin='lower')
                 axs[height].set_xticks([])
