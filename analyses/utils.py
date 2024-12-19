@@ -46,7 +46,7 @@ def load_from_workdir(
     with open(os.path.join(workdir, "config.yaml"), "rt") as f:
         config = yaml.unsafe_load(f)
     config = ml_collections.ConfigDict(config)
-    config.root_dir = root_dirs.get_root_dir()
+    config.root_dir = root_dirs.get_root_dir(config.dataset)
     config.model.return_attention_maps = return_attention
 
     if old:
