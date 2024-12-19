@@ -5,6 +5,7 @@ import jax
 import jax.numpy as jnp
 from flax.training import train_state
 import numpy as np
+import tensorflow as tf
 
 from molnet import graphics
 from molnet.data import input_pipeline_online
@@ -158,6 +159,11 @@ def make_predictions(
 def main(argv):
     del argv
 
+    # Hide any GPUs from TensorFlow. Otherwise TF might reserve memory and make
+    # it unavailable to JAX.
+    tf.config.experimental.set_visible_devices([], 'GPU')
+
+    logging.info("Starting predictions")
     # Make predictions    
     make_predictions(
         os.path.abspath(FLAGS.workdir),
@@ -167,6 +173,7 @@ def main(argv):
         FLAGS.peak_threshold,
         FLAGS.old,
     )
+    logging.info("Predictions done. Exiting.")
 
 
 if __name__ == "__main__":
