@@ -83,6 +83,7 @@ def get_datasets(
                 config.noise_std,
                 interpolate_z=config.interpolate_input_z,
                 cutout_probs=config.cutout_probs,
+                max_shift_per_slice=config.max_shift_per_slice,
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True,
@@ -112,6 +113,7 @@ def _preprocess_images(
     noise_std: float = 0.0,
     interpolate_z: Optional[int] = None,
     cutout_probs: Optional[List[float]] = [0.5, 0.3, 0.1, 0.05, 0.05],
+    max_shift_per_slice: float = 0.02,
 ) -> Dict[str, tf.Tensor]:
     """Preprocesses images."""
     
@@ -137,15 +139,20 @@ def _preprocess_images(
     if interpolate_z is not None:
         x = tf.image.resize(x, (x.shape[1], interpolate_z), method='bilinear')
 
+    # Randomly shift the slices.
+    x = augmentation.random_slice_shift(x, max_shift_per_slice=max_shift_per_slice)
+
+    # Rotate inputs tensor and coordinates.
+    (
+        x,
+        shifted_xyz
+    ) = augmentation.random_rotate(x, shifted_xyz)
+
     # Add noise to the images.
-    if noise_std > 0.0:
-        x = x + tf.random.normal(tf.shape(x), stddev=noise_std)
+    x = augmentation.add_noise(x, noise_std)
 
-    # Apply rotation and flip augmentation.
-    #x, shifted_xyz = augmentation.random_rotate_3d_stacks_with_coords(x, shifted_xyz)
-
-    # Create cutout augmentation.
-    x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(5, 10))
+    # Create cutouts.
+    x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(2, 10))
 
     sample = {
         "images": x,
