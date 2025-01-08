@@ -166,3 +166,7 @@ cython_debug/
 
 # Images
 *.png
+
+# DS_Store (what is this?)
+.DS_Store
+*.DS_Store
