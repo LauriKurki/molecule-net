@@ -82,6 +82,7 @@ def get_datasets(
                 x,
                 config.noise_std,
                 interpolate_z=config.interpolate_input_z,
+                z_cutoff=config.z_cutoff,
                 cutout_probs=config.cutout_probs,
                 max_shift_per_slice=config.max_shift_per_slice,
             ),
@@ -113,6 +114,7 @@ def _preprocess_images(
     batch: Dict[str, tf.Tensor],
     noise_std: float = 0.0,
     interpolate_z: Optional[int] = None,
+    z_cutoff: float = 1.0,
     cutout_probs: Optional[List[float]] = [0.5, 0.3, 0.1, 0.05, 0.05],
     max_shift_per_slice: float = 0.02,
 ) -> Dict[str, tf.Tensor]:
@@ -129,6 +131,10 @@ def _preprocess_images(
 
     # Also shift the scan window to start at (0, 0).
     shifted_sw = sw - sw[0]
+
+    # Crop slices to z_cutoff.
+    z_slices = z_cutoff / 0.1
+    x = x[..., -int(z_slices):]
 
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
