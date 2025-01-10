@@ -20,7 +20,12 @@ ELEM_TO_COLOR = {
     "C": 'gray',
     "N": 'blue',
     "O": 'red',
-    "F": 'green'
+    "F": 'green',
+    "Si": 'orange',
+    "P": 'purple',
+    "S": 'yellow',
+    "Cl": 'lime',
+    "Br": 'brown'
 }
 
 INDEX_TO_COLOR = {i: ELEM_TO_COLOR[elem] for i, elem in INDEX_TO_ELEM.items()}
