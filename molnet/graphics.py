@@ -34,7 +34,12 @@ NUMBER_TO_COLOR = {
     6: 'gray',
     7: 'blue',
     8: 'red',
-    9: 'green'
+    9: 'green',
+    14: 'orange',
+    15: 'purple',
+    16: 'yellow',
+    17: 'lime',
+    35: 'brown'
 }
 
 
