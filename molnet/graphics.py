@@ -9,7 +9,12 @@ import matplotlib.pyplot as plt
 
 from typing import List
 
-INDEX_TO_ELEM = {0: 'H', 1: 'C', 2: 'N', 3: 'O', 4: 'F'}
+INDEX_TO_ELEM = {
+    0: 'H',
+    1: 'C', 2: 'N', 3: 'O', 4: 'F',
+    5: 'Si', 6: 'P', 7: 'S', 8: 'Cl',
+    9: 'Br'}
+
 ELEM_TO_COLOR = {
     "H": 'white',
     "C": 'gray',
@@ -17,6 +22,7 @@ ELEM_TO_COLOR = {
     "O": 'red',
     "F": 'green'
 }
+
 INDEX_TO_COLOR = {i: ELEM_TO_COLOR[elem] for i, elem in INDEX_TO_ELEM.items()}
 NUMBER_TO_COLOR = {
     1: 'white',
@@ -36,9 +42,8 @@ def save_predictions(
     start_save_idx: int = 0,
 ):
 
-    titles = ['H', 'C', 'N', 'O', 'F']
-
     n_samples = inputs.shape[0]
+    n_species = targets.shape[-1]
 
     for sample in range(n_samples):
         inp = inputs[sample]
@@ -46,7 +51,10 @@ def save_predictions(
         pred = preds[sample]
         loss = losses[sample]
 
-        fig = plt.figure(figsize=(18, 10), layout='constrained')
+        total_columns = n_species*2 + 3
+        total_rows = 5
+
+        fig = plt.figure(figsize=(total_columns*3, total_rows*3), layout='constrained')
         subfigs = fig.subfigures(1, 5, wspace=0.07, width_ratios=[1, 2, 2, 1, 1])
 
         fig.suptitle(f'mse: {loss:.3e}', fontsize=16)
@@ -56,18 +64,18 @@ def save_predictions(
         subfigs[3].suptitle(f'Prediction (sum over species)')
         subfigs[4].suptitle(f'Target (sum over species)')
 
+        n_heights = inp.shape[-2]
         axs_input = subfigs[0].subplots(5, 1)
-        axs_pred = subfigs[1].subplots(5, 5)
-        axs_target = subfigs[2].subplots(5, 5)
+        axs_pred = subfigs[1].subplots(5, n_species)
+        axs_target = subfigs[2].subplots(5, n_species)
         axs_pred_sum = subfigs[3].subplots(5, 1)
         axs_target_sum = subfigs[4].subplots(5, 1)
 
         vmax = target.max()
 
-        n_heights = inp.shape[-2]
         for i in range(5):
             height = n_heights // 5 * i
-            for j in range(5):
+            for j in range(n_species):
                 axs_pred[i, j].imshow(pred[..., height, j], cmap='gray', vmin=0, vmax=vmax, origin='lower')
                 axs_pred[i, j].set_xticks([])
                 axs_pred[i, j].set_yticks([])
@@ -95,9 +103,9 @@ def save_predictions(
         subfigs[3].colorbar(ps, ax=axs_pred_sum, location='right', shrink=0.5)
         subfigs[4].colorbar(ts, ax=axs_target_sum, location='right', shrink=0.5)
 
-        for i, title in enumerate(titles):
-            axs_pred[0, i].set_title(title)
-            axs_target[0, i].set_title(title)
+        for i in range(n_species):
+            axs_pred[0, i].set_title(INDEX_TO_ELEM[i])
+            axs_target[0, i].set_title(INDEX_TO_ELEM[i])
             axs_pred[0, 0].set_ylabel('Far')
             axs_pred[-1, 0].set_ylabel('Close')
             axs_target[0, 0].set_ylabel('Far')

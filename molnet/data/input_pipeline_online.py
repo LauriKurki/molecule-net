@@ -95,6 +95,7 @@ def get_datasets(
                 z_cutoff=config.z_cutoff,
                 sigma=config.sigma,
                 factor=config.gaussian_factor,
+                include_heavy_atoms="bromine" in config.dataset 
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True
@@ -168,6 +169,7 @@ def _compute_atom_maps(
     z_cutoff: float = 1.0,
     sigma: float = 0.2,
     factor: float = 5.0,
+    include_heavy_atoms: bool = False,
 ) -> tf.Tensor:
     """Computes atom maps."""
     xyz = batch["xyz"]
@@ -180,10 +182,9 @@ def _compute_atom_maps(
     y = tf.linspace(0., 16., 128)
     z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
     #z = tf.linspace(z_max-z_cutoff, z_max, z_steps)
-    z = tf.linspace(z_max, z_max-z_cutoff, z_steps)
 
-    #z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
-    #z = tf.linspace(z_max-z_cutoff, z_max, z_steps)
+    # Reversing the z axis seems to be essential for smooth learning.
+    z = tf.linspace(z_max, z_max-z_cutoff, z_steps)
 
     X, Y, Z = tf.meshgrid(x, y, z, indexing='xy')
 
@@ -193,6 +194,11 @@ def _compute_atom_maps(
     maps_n = tf.zeros_like(X)
     maps_o = tf.zeros_like(X)
     maps_f = tf.zeros_like(X)
+    maps_si = tf.zeros_like(X)
+    maps_p = tf.zeros_like(X)
+    maps_s = tf.zeros_like(X)
+    maps_cl = tf.zeros_like(X)
+    maps_br = tf.zeros_like(X)
 
     for atom in xyz:
         m = tf.exp(
@@ -212,8 +218,22 @@ def _compute_atom_maps(
             maps_o += m
         elif atom[-1] == 9:
             maps_f += m
+        elif atom[-1] == 14:
+            maps_si += m
+        elif atom[-1] == 15:
+            maps_p += m
+        elif atom[-1] == 16:
+            maps_s += m
+        elif atom[-1] == 17:
+            maps_cl += m
+        elif atom[-1] == 35:
+            maps_br += m
 
-    atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=0)
+    if include_heavy_atoms:
+        atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=0)
+    else:
+        atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=0)
+
     atom_map = tf.transpose(atom_map, perm=[1, 2, 3, 0])
 
     return {
