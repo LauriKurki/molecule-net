@@ -155,6 +155,10 @@ def _preprocess_images(
         shifted_xyz
     ) = augmentation.random_rotate(x, shifted_xyz)
 
+    # Crop to size 128x128 after rotation to avoid artifacts.
+    if x.shape[0] > 128:
+        x = augmentation.center_crop(x, 128)
+
     # Add noise to the images.
     x = augmentation.add_noise(x, noise_std)
 

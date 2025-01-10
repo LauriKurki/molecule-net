@@ -53,6 +53,29 @@ def add_noise(
 
     return x
 
+def center_crop(x, size):
+    """
+    Center-crops a stack of 2D images to the specified size.
+
+    Args:
+        x (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        size (int): The size of the crop.
+
+    Returns:
+        tf.Tensor: The center-cropped images.
+    """
+
+    # Compute the crop size
+    crop_size = tf.constant([size, size])
+
+    # Compute the starting point of the crop
+    start = (tf.shape(x)[:2] - crop_size) // 2
+
+    # Crop the images
+    x = x[start[0]:start[0] + crop_size[0], start[1]:start[1] + crop_size[1]]
+
+    return x
+
 
 def random_rotate(
     x: tf.Tensor,
