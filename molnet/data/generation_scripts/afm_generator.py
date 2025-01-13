@@ -32,9 +32,9 @@ class Trainer(GeneratorAFMtrainer):
 
 def create_afmulator():
     afm = AFMulator(
-        pixPerAngstrome=8,
-        scan_dim=(128, 128, 29),
-        scan_window=((0., 0., 5.), (15.9, 15.9, 7.9)),
+        pixPerAngstrome=10,
+        scan_dim=(192, 192, 29),
+        scan_window=((0., 0., 5.), (23.9, 23.9, 7.9)),
         iZPP=8,
         QZs=[0.1, 0.0, -0.1, 0.0],
         Qs=[-10, 20, -10, 0],
@@ -82,7 +82,7 @@ def generate_afms(
     logging.info(f"Saving to {output_dir}")
 
     signature = {
-        "x": tf.TensorSpec(shape=(128, 128, 20), dtype=tf.float32),
+        "x": tf.TensorSpec(shape=(192, 192, 20), dtype=tf.float32),
         "xyz": tf.TensorSpec(shape=(None, 5), dtype=tf.float32),
         "sw": tf.TensorSpec(shape=(2, 3), dtype=tf.float32),
     }
@@ -159,7 +159,12 @@ def main(argv) -> None:
 
     # Read the rotations and flatten
     rotations = np.load(FLAGS.rotations_fname, allow_pickle=True)
-    rotations = flatten_rotations(rotations)
+    rotations = flatten_rotations(
+        rotations,
+        atomic_species=np.array(
+            [1, 6, 7, 8, 9, 14, 15, 16, 17, 35]
+        )
+    )
     logging.info(f"Loaded {len(rotations)} unique rotations.")
 
     # Set seed for reproducibility and shuffle the rotations
