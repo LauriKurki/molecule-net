@@ -157,6 +157,11 @@ def _preprocess_images(
 
     # Crop to size 128x128 after rotation to avoid artifacts.
     if x.shape[0] > 128:
+        # Shift xyz by half of the crop size.
+        shifted_xyz = shifted_xyz + (128 - x.shape[0]) * 0.125 / 2
+        shifted_xyz = tf.concat([shifted_xyz[:, :2], xyz[:, 2:]], axis=-1)
+        
+        # Crop the images.
         x = augmentation.center_crop(x, 128)
 
     # Add noise to the images.
