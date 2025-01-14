@@ -93,7 +93,7 @@ def get_datasets(
         dataset_split = dataset_split.map(
             lambda x: _compute_atom_maps(
                 x,
-                z_cutoff=config.z_cutoff,
+                z_cutoff=config.target_z_cutoff,
                 sigma=config.sigma,
                 factor=config.gaussian_factor,
                 include_heavy_atoms="bromine" in config.dataset 
