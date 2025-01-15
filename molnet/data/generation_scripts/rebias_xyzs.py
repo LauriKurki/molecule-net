@@ -282,7 +282,7 @@ def main(argv):
     plane_bias = None
     random_bias = None
     flat_num_atoms = FLAGS.flat_num_atoms
-    valid_elements = np.array([1, 6, 7, 8, 9])
+    valid_elements = np.array([1, 6, 7, 8, 9, 17, 35])
 
     # Set random seeds for reproducibility
     random.seed(0)
