@@ -26,15 +26,15 @@ init_env(i_platform=0)
 
 class Trainer(GeneratorAFMtrainer):
     def on_sample_start(self):
-        self.randomize_distance(delta=0.0)
+        self.randomize_distance(delta=0.25)
         self.randomize_tip(max_tilt=0.3)
 
 
 def create_afmulator():
     afm = AFMulator(
         pixPerAngstrome=10,
-        scan_dim=(192, 192, 29),
-        scan_window=((0., 0., 5.), (23.9, 23.9, 7.9)),
+        scan_dim=(192, 192, 19),
+        scan_window=((0., 0., 5.), (23.9, 23.9, 6.9)),
         iZPP=8,
         QZs=[0.1, 0.0, -0.1, 0.0],
         Qs=[-10, 20, -10, 0],
@@ -79,10 +79,10 @@ def generate_afms(
 ) -> None:
     """Generate AFMs for a chunk in the dataset."""
 
-    logging.info(f"Saving to {output_dir}")
+    #logging.info(f"Saving to {output_dir}")
 
     signature = {
-        "x": tf.TensorSpec(shape=(192, 192, 20), dtype=tf.float32),
+        "x": tf.TensorSpec(shape=(192, 192, 10), dtype=tf.float32),
         "xyz": tf.TensorSpec(shape=(None, 5), dtype=tf.float32),
         "sw": tf.TensorSpec(shape=(2, 3), dtype=tf.float32),
     }
@@ -123,7 +123,7 @@ def generate_afms(
 
     # Create generator
     def generator():
-        for batch in tqdm.tqdm(trainer, total=(end - start) // batch_size):
+        for batch in trainer:
             Xs, Ys, xyzs, sws = batch
            
             # Pad the xyzs and stack
@@ -162,7 +162,9 @@ def main(argv) -> None:
     rotations = flatten_rotations(
         rotations,
         atomic_species=np.array(
-            [1, 6, 7, 8, 9, 14, 15, 16, 17, 35]
+            #[1, 6, 7, 8, 9], # Light
+            [1, 6, 7, 8, 9, 17, 35] # Halogen
+            #[1, 6, 7, 8, 9, 14, 15, 16, 17, 35] # All
         )
     )
     logging.info(f"Loaded {len(rotations)} unique rotations.")
@@ -186,7 +188,7 @@ def main(argv) -> None:
     os.makedirs(FLAGS.output_dir, exist_ok=True)
 
     # Create the argument list for the generator
-    args_list = (
+    args_list = [
         (
             FLAGS.molecule_dir,
             rotations,
@@ -199,10 +201,10 @@ def main(argv) -> None:
                 f"afms_{start:06d}_{start + FLAGS.chunk_size:06d}",
             ),
         ) for start in range(0, n_mol, FLAGS.chunk_size)
-    )
+    ]
 
     # Generate the AFMs
-    for args in args_list:
+    for args in tqdm.tqdm(args_list):
         generate_afms(*args)
 
 
