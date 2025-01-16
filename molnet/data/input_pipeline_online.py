@@ -96,7 +96,7 @@ def get_datasets(
                 z_cutoff=config.target_z_cutoff,
                 sigma=config.sigma,
                 factor=config.gaussian_factor,
-                include_heavy_atoms="bromine" in config.dataset 
+                dataset=config.dataset 
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True
@@ -184,7 +184,7 @@ def _compute_atom_maps(
     z_cutoff: float = 1.0,
     sigma: float = 0.2,
     factor: float = 5.0,
-    include_heavy_atoms: bool = False,
+    dataset: str = None,
 ) -> tf.Tensor:
     """Computes atom maps."""
     xyz = batch["xyz"]
@@ -235,9 +235,11 @@ def _compute_atom_maps(
         elif atom[-1] == 35:
             maps_br += m
 
-    if include_heavy_atoms:
+    if "bromine" in dataset:
         #atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=0)
         atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_cl, maps_br], axis=0)
+    elif "water" in dataset:
+        atom_map = tf.stack([maps_h, maps_o], axis=0)
     else:
         atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=0)
 
