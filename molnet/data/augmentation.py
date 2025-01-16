@@ -76,6 +76,33 @@ def center_crop(x, size):
 
     return x
 
+def random_crop(x: tf.Tensor, y: tf.Tensor, size: int) -> Tuple[tf.Tensor, tf.Tensor]:
+    """
+    Randomly crops a stack of 2D images and corresponding atom maps to the specified size.
+
+    Args:
+        x (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        y (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        size (int): The size of the crop.
+
+    Returns:
+        (tf.Tensor, tf.Tensor): The cropped images and atom maps.
+    """
+
+    # Define the excluded border size
+    border = 0.1
+    border_px = tf.cast(size * border, tf.int32)
+
+    # Compute the starting points of the crop
+    start_x = tf.random.uniform([], minval=border_px, maxval=x.shape[0] - size - border_px, dtype=tf.int32)
+    start_y = tf.random.uniform([], minval=border_px, maxval=x.shape[1] - size - border_px, dtype=tf.int32)
+
+    # Crop the images
+    x = x[start_x:start_x + size, start_y:start_y + size]
+    y = y[start_x:start_x + size, start_y:start_y + size]
+
+    return x, y
+
 
 def random_rotate(
     x: tf.Tensor,
@@ -127,6 +154,46 @@ def random_rotate(
     x_rot = tf.transpose(x_rot, [1, 2, 0, 3])
 
     return x_rot, xyz_rot
+
+
+def random_rotate_image_and_atom_map(
+    x: tf.Tensor,
+    y: tf.Tensor,
+) -> Tuple[tf.Tensor, tf.Tensor]:
+    """
+    Apply same random rotation to images and atom maps.
+
+    Args:
+        x (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        y (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+
+    Returns:
+        (tf.Tensor, tf.Tensor): The rotated tensors.
+    """
+
+    angle = random.uniform(0, 360)
+
+    # Transpose tensors [X, Y, Z, C] -> [Z, X, Y, C] temporarily for rotation
+    x = tf.transpose(x, [2, 0, 1, 3])
+    y = tf.transpose(y, [2, 0, 1, 3])
+    x_rot = rotate(
+        x,
+        angle,
+        fill_mode='nearest',
+        interpolation='bilinear'
+    )
+    y_rot = rotate(
+        y,
+        angle,
+        fill_mode='nearest',
+        interpolation='bilinear'
+    )
+
+    # Transpose back to original shape
+    x_rot = tf.transpose(x_rot, [1, 2, 0, 3])
+    y_rot = tf.transpose(y_rot, [1, 2, 0, 3])
+
+    return x_rot, y_rot
 
 
 def add_random_cutouts(images, cutout_probs, cutout_size_range):
