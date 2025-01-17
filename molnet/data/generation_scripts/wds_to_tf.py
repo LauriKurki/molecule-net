@@ -23,13 +23,14 @@ def save_afms(
     def generator():
         for f in files:
             sample = np.load(f)
+            #print(sample.keys())
             # x shape [Z, X, Y] -> [Y, X, Z]
             #print(f"x.shape: {x.shape}")
 
             yield {
-                "x": sample["x"],#.transpose(2, 0, 1),
-                "xyz": sample["xyz"],
-                "sw": sample["sw"],
+                "x": sample["arr_0"].transpose(1, 2, 0),
+                "xyz": sample["arr_1"],
+                "sw": sample["arr_2"],
             }
 
     ds = tf.data.Dataset.from_generator(
@@ -41,7 +42,7 @@ def save_afms(
     ds.save(save_dir)
 
 
-def decode_xyz(key: str, data: Any) -> Tuple[np.ndarray, np.ndarray] | Tuple[None, None]:
+def decode_xyz(key: str, data: Any):
     """
     Webdataset pipeline function for decoding xyz files.
 
@@ -142,24 +143,24 @@ if __name__=='__main__':
     outputdir = "/scratch/project_2005247/lauri/data/water-bilayer-temp"
     save_dir  = "/scratch/project_2005247/lauri/data/water-bilayer-tf"
 
-    urls = [
-        os.path.join(directory, f)
-        for f in os.listdir(directory)
-    ]
+    #urls = [
+    #    os.path.join(directory, f)
+    #    for f in os.listdir(directory)
+    #]
 
     # Create dataset
-    dataset = wds.WebDataset(urls).decode("l", decode_xyz)
-    dl = iter(dataset)
+    #dataset = wds.WebDataset(urls).decode("l", decode_xyz)
+    #dl = iter(dataset)
 
     # First save the images to individual temporary files for later use
-    gen = generator(dl)
-    os.makedirs(outputdir, exist_ok=True)
+    #gen = generator(dl)
+    #os.makedirs(outputdir, exist_ok=True)
 
-    for i, batch in tqdm.tqdm(enumerate(gen)):
-        np.savez(
-            os.path.join(outputdir, f"batch_{i}"),
-            **batch
-        )
+    #for i, batch in tqdm.tqdm(enumerate(gen)):
+    #    np.savez(
+    #        os.path.join(outputdir, f"batch_{i}"),
+    #        *batch
+    #    )
 
     files = [
         os.path.join(outputdir, f)
