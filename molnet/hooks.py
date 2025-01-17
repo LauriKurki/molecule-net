@@ -233,3 +233,46 @@ class PredictionHook:
         #        "preds": preds_summed,
         #    },
         #)
+
+
+@dataclass
+class SegmantionPredictionHook:
+    workdir: str
+    predict_fn: Callable
+    writer: metric_writers.SummaryWriter
+
+    def __call__(
+        self,
+        state: train_state.TrainState,
+        num_batches: int,
+        final: bool
+    ):
+
+        # Create the output directory
+        output_dir = os.path.join(
+            self.workdir,
+            "predictions",
+            f"final_step_{state.get_step()}" if final else f"step_{state.get_step()}"
+        )  
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Predict on the test set
+        (
+            inputs, targets, preds, xyzs
+        ) = self.predict_fn(
+            state,
+            num_batches
+        )
+
+        assert (
+            inputs.shape[:-1] == preds.shape[:-1] == targets.shape
+        ), (
+            inputs.shape,
+            preds.shape,
+            targets.shape,
+        )
+
+        # Write detailed predictions
+        graphics.save_segmentation_predictions(
+            inputs, targets, preds, output_dir
+        )
