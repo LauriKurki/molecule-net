@@ -168,7 +168,9 @@ def _preprocess_images(
     x = augmentation.add_noise(x, noise_std)
 
     # Create cutouts.
-    x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(2, 10))
+    x = augmentation.add_random_cutouts(
+        x, cutout_probs=cutout_probs, cutout_size_range=(2, 10), image_size=128
+    )
 
     sample = {
         "images": x,
