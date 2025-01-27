@@ -196,7 +196,7 @@ def random_rotate_image_and_atom_map(
     return x_rot, y_rot
 
 
-def add_random_cutouts(images, cutout_probs, cutout_size_range):
+def add_random_cutouts(images, cutout_probs, cutout_size_range, image_size):
     """
     Adds random black patches to a 3D stack of 2D images.
 
@@ -216,8 +216,8 @@ def add_random_cutouts(images, cutout_probs, cutout_size_range):
         for _ in range(num_patches):
             patch_x_size = tf.random.uniform([], minval=cutout_size_range[0], maxval=cutout_size_range[1] + 1, dtype=tf.int32)
             patch_y_size = tf.random.uniform([], minval=cutout_size_range[0], maxval=cutout_size_range[1] + 1, dtype=tf.int32)
-            x = tf.random.uniform([], minval=0, maxval=slice_2d.shape[0] - patch_x_size, dtype=tf.int32)
-            y = tf.random.uniform([], minval=0, maxval=slice_2d.shape[1] - patch_y_size, dtype=tf.int32)
+            x = tf.random.uniform([], minval=0, maxval=image_size - patch_x_size, dtype=tf.int32)
+            y = tf.random.uniform([], minval=0, maxval=image_size - patch_y_size, dtype=tf.int32)
 
             # Create a patch mask and apply it
             slice_2d = tf.tensor_scatter_nd_update(
