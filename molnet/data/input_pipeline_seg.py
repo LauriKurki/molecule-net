@@ -199,11 +199,11 @@ def _compute_atom_maps(
 
     for atom in xyz:
         m = tf.exp(
-            -((X - atom[0]) + (Y - atom[1]) + (Z - atom[2]))
+            -((X - atom[0]) ** 2 + (Y - atom[1]) ** 2 + (Z - atom[2])) ** 2 / (2 * sigma ** 2)
         )
         
         # all values below 1e-4 to 0
-        m = tf.where(m < 1e-2, tf.zeros_like(m), 1)
+        #m = tf.where(m < 1e-2, tf.zeros_like(m), 1)
 
         if atom[-1] == 1:
             atom_map += m*1
