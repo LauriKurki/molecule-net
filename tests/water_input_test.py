@@ -48,7 +48,7 @@ class TestInputPipeline(absltest.TestCase):
             times.append(t1 - t0)
 
             print(f"\n Time to get batch: {(t1 - t0)*1e3:.2f} ms")
-            time.sleep(0.2)
+            time.sleep(0.5)
 
 
         print(f"Average time to get batch: {sum(times)/len(times)*1e3:.2f} ms")
