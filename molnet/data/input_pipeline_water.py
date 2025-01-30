@@ -241,6 +241,9 @@ def _augment_image_and_atom_map(
     x = batch["images"]
     y = batch["atom_map"]
 
+    # Normalize the images.
+    x = augmentation.normalize_images(x)
+
     # Random rotation
     x, y = augmentation.random_rotate_image_and_atom_map(x, y)
 
