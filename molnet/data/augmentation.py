@@ -53,13 +53,19 @@ def add_noise(
 
     return x
 
-def center_crop(x, size):
+def center_crop(
+    x: tf.Tensor,
+    y: tf.Tensor,
+    size: int,
+    shift: int = 0):
     """
     Center-crops a stack of 2D images to the specified size.
 
     Args:
         x (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        y (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
         size (int): The size of the crop.
+        shift (int): max-shift of the crop.
 
     Returns:
         tf.Tensor: The center-cropped images.
@@ -70,11 +76,14 @@ def center_crop(x, size):
 
     # Compute the starting point of the crop
     start = (tf.shape(x)[:2] - crop_size) // 2
+    shift = tf.random.uniform([2], minval=-shift, maxval=shift, dtype=tf.int32)
+    start += shift
 
     # Crop the images
     x = x[start[0]:start[0] + crop_size[0], start[1]:start[1] + crop_size[1]]
+    y = y[start[0]:start[0] + crop_size[0], start[1]:start[1] + crop_size[1]]
 
-    return x
+    return x, y
 
 def random_crop(x: tf.Tensor, y: tf.Tensor, size: int) -> Tuple[tf.Tensor, tf.Tensor]:
     """
@@ -100,6 +109,46 @@ def random_crop(x: tf.Tensor, y: tf.Tensor, size: int) -> Tuple[tf.Tensor, tf.Te
     # Crop the images
     x = x[start_x:start_x + size, start_y:start_y + size]
     y = y[start_x:start_x + size, start_y:start_y + size]
+
+    return x, y
+
+def random_crop_on_top_atom(
+    x: tf.Tensor,
+    y: tf.Tensor,
+    xyz: tf.Tensor,
+    shift: int = 20,
+    crop_size: int = 128
+) -> Tuple[tf.Tensor, tf.Tensor]:
+    """
+    Crops a stack of 2D images and corresponding atom maps to the specified size centered around the top atom.
+    Additionally, the crop is shifted by a random amount specified by the shift parameter.
+
+    Args:
+        x (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        y (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        xyz (tf.Tensor): A 2D tensor of shape (N, 5) representing coordinates.
+        shift (int): The maximum shift of the crop.
+        crop_size (int): The size of the crop.
+
+    Returns:
+        (tf.Tensor, tf.Tensor): The cropped images and atom maps.
+    """
+    
+    # Find the top atom
+    top_atom = tf.argmax(xyz[:, 2])
+
+    # Compute the crop size
+    crop_size = tf.constant([crop_size, crop_size])
+
+    # Compute the starting point of the crop
+    start = tf.cast(xyz[top_atom, :2], tf.int32) - crop_size // 2
+
+    # Add random shift
+    start += tf.random.uniform([2], minval=-shift, maxval=shift, dtype=tf.int32)
+
+    # Crop the images
+    x = x[start[0]:start[0] + crop_size[0], start[1]:start[1] + crop_size[1]]
+    y = y[start[0]:start[0] + crop_size[0], start[1]:start[1] + crop_size[1]]
 
     return x, y
 
