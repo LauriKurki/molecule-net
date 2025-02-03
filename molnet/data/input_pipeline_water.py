@@ -128,7 +128,7 @@ def _preprocess_batch(
     """Preprocesses images."""
     
     x = batch["images"]
-    x = tf.transpose(x, perm=[1, 0, 2])
+    #x = tf.transpose(x, perm=[1, 0, 2])
     x = x[::-1, :, :]
 
     sw = batch["sw"]
@@ -248,7 +248,8 @@ def _augment_image_and_atom_map(
     x = augmentation.random_slice_shift(x, max_shift_per_slice=max_shift_per_slice)
 
     # Crop the images and atom maps.
-    x, y = augmentation.random_crop(x, y, crop_size)
+    #x, y = augmentation.random_crop(x, y, crop_size)
+    x, y = augmentation.center_crop(x, y, crop_size, shift=16)
 
     # Add noise to the images.
     x = augmentation.add_noise(x, noise_std)
