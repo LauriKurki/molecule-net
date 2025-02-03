@@ -203,7 +203,7 @@ def _compute_atom_maps(
         )
         
         # all values below 1e-4 to 0
-        #m = tf.where(m < 1e-2, tf.zeros_like(m), 1)
+        m = tf.where(m < 1e-2, tf.zeros_like(m), 1)
 
         if atom[-1] == 1:
             atom_map += m*1
