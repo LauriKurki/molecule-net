@@ -148,8 +148,11 @@ def _preprocess_batch(
 
     # Crop slices to z_cutoff.
     z_slices = z_cutoff / 0.1
-    x = x[..., -int(z_slices):]
+    #x = x[..., -int(z_slices):]
 
+    # Select "z_slices" consecutive slices from the middle starting at a random index.
+    z_start = tf.random.uniform((), minval=0, maxval=x.shape[-1] - z_slices, dtype=tf.int32)
+    x = x[..., z_start:z_start + int(z_slices)]
 
     # Add channel dimension.
     x = x[..., tf.newaxis]
