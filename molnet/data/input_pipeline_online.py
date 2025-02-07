@@ -96,7 +96,7 @@ def get_datasets(
                 z_cutoff=config.target_z_cutoff,
                 sigma=config.sigma,
                 factor=config.gaussian_factor,
-                include_heavy_atoms="bromine" in config.dataset 
+                dataset=config.dataset 
             ),
             num_parallel_calls=tf.data.AUTOTUNE,
             deterministic=True
@@ -168,7 +168,9 @@ def _preprocess_images(
     x = augmentation.add_noise(x, noise_std)
 
     # Create cutouts.
-    x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(2, 10))
+    x = augmentation.add_random_cutouts(
+        x, cutout_probs=cutout_probs, cutout_size_range=(2, 10), image_size=128
+    )
 
     sample = {
         "images": x,
@@ -184,7 +186,7 @@ def _compute_atom_maps(
     z_cutoff: float = 1.0,
     sigma: float = 0.2,
     factor: float = 5.0,
-    include_heavy_atoms: bool = False,
+    dataset: str = None,
 ) -> tf.Tensor:
     """Computes atom maps."""
     xyz = batch["xyz"]
@@ -209,9 +211,6 @@ def _compute_atom_maps(
     maps_n = tf.zeros_like(X)
     maps_o = tf.zeros_like(X)
     maps_f = tf.zeros_like(X)
-    maps_si = tf.zeros_like(X)
-    maps_p = tf.zeros_like(X)
-    maps_s = tf.zeros_like(X)
     maps_cl = tf.zeros_like(X)
     maps_br = tf.zeros_like(X)
 
@@ -233,19 +232,16 @@ def _compute_atom_maps(
             maps_o += m
         elif atom[-1] == 9:
             maps_f += m
-        elif atom[-1] == 14:
-            maps_si += m
-        elif atom[-1] == 15:
-            maps_p += m
-        elif atom[-1] == 16:
-            maps_s += m
         elif atom[-1] == 17:
             maps_cl += m
         elif atom[-1] == 35:
             maps_br += m
 
-    if include_heavy_atoms:
-        atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=0)
+    if "bromine" in dataset:
+        #atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=0)
+        atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_cl, maps_br], axis=0)
+    elif "water" in dataset:
+        atom_map = tf.stack([maps_h, maps_o], axis=0)
     else:
         atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=0)
 

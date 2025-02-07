@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=project_2005247
 #SBATCH --job-name=rebias_afm
-#SBATCH --time=00:05:00
+#SBATCH --time=00:10:00
 #SBATCH --output=log_rebias.out
 #SBATCH -p small
 #SBATCH --gres=nvme:1
@@ -19,6 +19,6 @@ ls $LOCAL_SCRATCH
 
 srun python rebias_xyzs.py \
     --database_path $LOCAL_SCRATCH/mol_database/ \
-    --save_path /scratch/project_2005247/lauri/data/rotations_HCNOF_tol_0.3.pickle \
+    --save_path /scratch/project_2005247/lauri/data/rotations_halogen_140125.pickle \
     --num_workers 20 \
     --flat_dist_tol 0.3

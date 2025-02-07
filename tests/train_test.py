@@ -6,7 +6,7 @@ import os
 import jax
 import tensorflow as tf
 
-from configs.tests import unet_test, attention_test
+from configs.tests import unet_test, attention_test, water_test
 from molnet import train
 from configs import root_dirs
 
@@ -15,7 +15,8 @@ from absl import logging
 
 ALL_CONFIGS = {
     #"unet": unet_test.get_config(),
-    "attention": attention_test.get_config(),
+    #"attention": attention_test.get_config(),
+    "water": water_test.get_config(),
 }
 
 class TrainTest(parameterized.TestCase):

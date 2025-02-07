@@ -23,7 +23,7 @@ from clu import (
 
 from configs import root_dirs
 from molnet import utils, train_state, hooks, loss
-from molnet.data import input_pipeline_online
+from molnet.data import input_pipeline_online, input_pipeline_water
 from molnet.models import create_model
 
 from typing import Any, Dict, Iterator, Tuple, Callable
@@ -219,7 +219,10 @@ def train_and_evaluate(
     rng = jax.random.PRNGKey(config.rng_seed)
     #rng, data_rng = jax.random.split(rng)
     #datasets = input_pipeline.get_datasets(data_rng, config)
-    datasets = input_pipeline_online.get_datasets(config)
+    if "water" in config.dataset:
+        datasets = input_pipeline_water.get_datasets(config)
+    else:
+        datasets = input_pipeline_online.get_datasets(config)
     train_ds = datasets["train"]
 
     # Create model
