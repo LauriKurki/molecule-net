@@ -151,7 +151,7 @@ def _preprocess_batch(
     #x = x[..., -int(z_slices):]
 
     # Select "z_slices" consecutive slices from the middle starting at a random index.
-    z_start = tf.random.uniform((), minval=0, maxval=x.shape[-1] - z_slices, dtype=tf.int32)
+    z_start = tf.random.uniform((), minval=0, maxval=x.shape[-1] - int(z_slices), dtype=tf.int32)
     x = x[..., z_start:z_start + int(z_slices)]
 
     # Add channel dimension.
