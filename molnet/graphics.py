@@ -377,6 +377,7 @@ def save_segmentation_predictions(
         target = targets[sample]
 
         n_heights = inp.shape[-2] # n_heights == nZ
+        n_classes = pred.shape[-1]
 
         # Plot in 3 rows: input, target, prediction
         # Shapes:
@@ -402,9 +403,9 @@ def save_segmentation_predictions(
                 if name == 'input':
                     axs[height].imshow(grid[..., height, 0], cmap='gray', origin='lower')
                 elif name == 'target':
-                    axs[height].imshow(grid[..., height], cmap='tab10', origin='lower')
+                    axs[height].imshow(grid[..., height], cmap='tab10', origin='lower', vmin=0, vmax=n_classes)
                 elif name == 'pred':
-                    axs[height].imshow(grid[..., height, 0], cmap='tab10', origin='lower')
+                    axs[height].imshow(grid[..., height, 0], cmap='tab10', origin='lower', vmin=0, vmax=n_classes)
                 axs[height].set_xticks([])
                 axs[height].set_yticks([])
 
