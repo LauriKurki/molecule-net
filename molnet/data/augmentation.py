@@ -205,7 +205,7 @@ def random_rotate_image_and_atom_map(
     return x_rot, y_rot
 
 
-def add_random_cutouts(images, cutout_probs, cutout_size_range, image_size):
+def add_random_cutouts(images, cutout_probs, cutout_size_range, image_size=128):
     """
     Adds random black patches to a 3D stack of 2D images.
 
