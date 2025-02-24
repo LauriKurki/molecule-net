@@ -57,7 +57,8 @@ def center_crop(
     x: tf.Tensor,
     y: tf.Tensor,
     size: int,
-    shift: int = 0):
+    shift: int = 0
+) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Center-crops a stack of 2D images to the specified size.
 
