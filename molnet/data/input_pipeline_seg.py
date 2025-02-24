@@ -198,27 +198,14 @@ def _compute_atom_maps(
     atom_map = tf.zeros_like(X)
 
     for atom in xyz:
-        m = tf.exp(
-            -((X - atom[0]) ** 2 + (Y - atom[1]) ** 2 + (Z - atom[2])) ** 2 / (2 * sigma ** 2)
-        )
-        
-        # all values below 1e-4 to 0
-        m = tf.where(m < 1e-2, tf.zeros_like(m), 1)
+        # Skip padding atoms
+        if atom[-1] == 0:
+            break
 
-        if atom[-1] == 1:
-            atom_map += m*1
-        elif atom[-1] == 6:
-            atom_map += m*2
-        elif atom[-1] == 7:
-            atom_map += m*3
-        elif atom[-1] == 8:
-            atom_map += m*4
-        elif atom[-1] == 9:
-            atom_map += m*5
-        elif atom[-1] == 17:
-            atom_map += m*6
-        elif atom[-1] == 35:
-            atom_map += m*7
+        m = (X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2
+        m = tf.where(m < 0.2, atom[-1], 0)
+
+        atom_map += m
 
     # Cast atom map to int.
     atom_map = tf.cast(atom_map, tf.int32)
@@ -228,4 +215,23 @@ def _compute_atom_maps(
         "xyz": batch["xyz"],
         "sw": batch["sw"],
         "atom_map": atom_map,
+    }
+
+def transform_input_and_target(
+    batch: Dict[str, tf.Tensor],
+) -> Dict[str, tf.Tensor]:
+    """Transforms the input and target."""
+    x = batch["images"]
+    y = batch["atom_map"]
+
+    # Center crop
+    x, y = augmentation.center_crop(
+        x, y, size=128, shift=8
+    )
+
+    return {
+        "images": x,
+        "atom_map": y,
+        "xyz": batch["xyz"],
+        "sw": batch["sw"],
     }
