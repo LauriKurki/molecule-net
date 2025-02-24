@@ -168,7 +168,9 @@ def _preprocess_images(
     x = augmentation.add_noise(x, noise_std)
 
     # Create cutouts.
-    x = augmentation.add_random_cutouts(x, cutout_probs=cutout_probs, cutout_size_range=(2, 10))
+    x = augmentation.add_random_cutouts(
+        x, cutout_probs=cutout_probs, cutout_size_range=(2, 10), image_size=128
+    )
 
     sample = {
         "images": x,
@@ -251,3 +253,116 @@ def _compute_atom_maps(
         "sw": batch["sw"],
         "atom_map": atom_map,
     }
+
+
+def get_full_molecule_datasets(
+    config: ml_collections.ConfigDict,
+) -> Dict[str, tf.data.Dataset]:
+    """Loads datasets for each split."""
+
+    filenames = sorted(os.listdir(config.root_dir))
+    filenames = [
+        os.path.join(config.root_dir, f)
+        for f in filenames
+        if f.startswith("afms_")
+    ]
+
+    if len(filenames) == 0:
+        raise ValueError(f"No files found in {config.root_dir}.")
+
+    # Partition the filenames into train, val, and test.
+    def filter_by_molecule_number(
+        filenames: Sequence[str], start: int, end: int
+    ) -> List[str]:
+        def filter_file(filename: str, start: int, end: int) -> bool:
+            filename = os.path.basename(filename)
+            file_start, file_end = [int(val) for val in re.findall(r"\d+", filename)]
+            return start <= file_start and file_end <= end
+
+        return [f for f in filenames if filter_file(f, start, end)]
+
+    # Number of molecules for training can be smaller than the chunk size.
+    files_by_split = {
+        "train": filter_by_molecule_number(filenames, *config.train_molecules),
+        "val": filter_by_molecule_number(filenames, *config.val_molecules),
+    }
+
+    element_spec = tf.data.Dataset.load(filenames[0]).element_spec
+    datasets = {}
+    for split, files_split in files_by_split.items():
+
+        # Load the files.
+        dataset_split = tf.data.Dataset.from_tensor_slices(files_split)
+        # Shuffle the files.
+        dataset_split = dataset_split.shuffle(1000)
+        dataset_split = dataset_split.interleave(
+            lambda path: tf.data.Dataset.load(path, element_spec=element_spec),
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True,
+        )
+
+        # Repeat the dataset.
+        #dataset_split = dataset_split.repeat()
+
+        # Shuffle the dataset.
+        if split == 'train':
+            dataset_split = dataset_split.shuffle(
+                1000,
+                reshuffle_each_iteration=True,
+            )
+
+        # batches consist of a dict {'x': image, 'xyz': xyz, 'sw': scan window})
+        dataset_split = dataset_split.map(
+            lambda x: {
+                "images": x["x"],
+                "xyz": x["xyz"],
+                "sw": x["sw"],
+            },
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True,
+        )
+
+        # Only include molecules where all atoms are within target_z_cutoff of max z.
+        # i.e. filter out molecules with any(z < z_max - target_z_cutoff - sigma)
+        dataset_split = dataset_split.filter(
+            lambda x: tf.reduce_all(
+                (
+                    x["xyz"][:, 2] > 
+                    tf.reduce_max(x["xyz"][:, 2]) - config.target_z_cutoff - config.sigma
+                )
+            ),
+        )
+
+        # Preprocess
+        dataset_split = dataset_split.map(
+            lambda x: _preprocess_images(
+                x,
+                noise_std=config.noise_std,
+                interpolate_z=config.interpolate_input_z,
+                z_cutoff=config.z_cutoff,
+                cutout_probs=config.cutout_probs,
+                max_shift_per_slice=config.max_shift_per_slice,
+            ),
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True,
+        )
+
+        # Compute atom maps.
+        dataset_split = dataset_split.map(
+            lambda x: _compute_atom_maps(
+                x,
+                z_cutoff=config.target_z_cutoff,
+                sigma=config.sigma,
+                factor=config.gaussian_factor,
+                include_heavy_atoms="bromine" in config.dataset 
+            ),
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True
+        )
+
+        # Batch the dataset.
+        dataset_split = dataset_split.batch(config.batch_size)
+        dataset_split = dataset_split.prefetch(tf.data.AUTOTUNE).as_numpy_iterator()
+
+        datasets[split] = dataset_split
+    return datasets

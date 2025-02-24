@@ -53,13 +53,19 @@ def add_noise(
 
     return x
 
-def center_crop(x, size):
+def center_crop(
+    x: tf.Tensor,
+    y: tf.Tensor,
+    size: int,
+    shift: int = 0):
     """
     Center-crops a stack of 2D images to the specified size.
 
     Args:
         x (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
+        y (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
         size (int): The size of the crop.
+        shift (int): max-shift of the crop.
 
     Returns:
         tf.Tensor: The center-cropped images.
@@ -70,11 +76,14 @@ def center_crop(x, size):
 
     # Compute the starting point of the crop
     start = (tf.shape(x)[:2] - crop_size) // 2
+    shift = tf.random.uniform([2], minval=-shift, maxval=shift, dtype=tf.int32)
+    start += shift
 
     # Crop the images
     x = x[start[0]:start[0] + crop_size[0], start[1]:start[1] + crop_size[1]]
+    y = y[start[0]:start[0] + crop_size[0], start[1]:start[1] + crop_size[1]]
 
-    return x
+    return x, y
 
 def random_crop(x: tf.Tensor, y: tf.Tensor, size: int) -> Tuple[tf.Tensor, tf.Tensor]:
     """
@@ -196,7 +205,7 @@ def random_rotate_image_and_atom_map(
     return x_rot, y_rot
 
 
-def add_random_cutouts(images, cutout_probs, cutout_size_range):
+def add_random_cutouts(images, cutout_probs, cutout_size_range, image_size):
     """
     Adds random black patches to a 3D stack of 2D images.
 
@@ -216,8 +225,8 @@ def add_random_cutouts(images, cutout_probs, cutout_size_range):
         for _ in range(num_patches):
             patch_x_size = tf.random.uniform([], minval=cutout_size_range[0], maxval=cutout_size_range[1] + 1, dtype=tf.int32)
             patch_y_size = tf.random.uniform([], minval=cutout_size_range[0], maxval=cutout_size_range[1] + 1, dtype=tf.int32)
-            x = tf.random.uniform([], minval=0, maxval=slice_2d.shape[0] - patch_x_size, dtype=tf.int32)
-            y = tf.random.uniform([], minval=0, maxval=slice_2d.shape[1] - patch_y_size, dtype=tf.int32)
+            x = tf.random.uniform([], minval=0, maxval=image_size - patch_x_size, dtype=tf.int32)
+            y = tf.random.uniform([], minval=0, maxval=image_size - patch_y_size, dtype=tf.int32)
 
             # Create a patch mask and apply it
             slice_2d = tf.tensor_scatter_nd_update(
