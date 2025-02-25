@@ -140,23 +140,16 @@ def dice_loss(logits, labels, epsilon=1e-6):
         Mean Dice loss.
     """
     num_classes = logits.shape[-1]
-    logits = logits.reshape(-1, num_classes)  # Flatten to [N, num_classes]
-    labels = labels.flatten()                 # Flatten to [N]
-
-    # Apply softmax for numerical stability
-    probs = jax.nn.softmax(logits, axis=-1)
-
-    # Gather probabilities of the correct class using advanced indexing
-    one_hot_labels = jax.nn.one_hot(labels, num_classes)
-    probs = jnp.sum(one_hot_labels * probs, axis=-1)
-
-    # Compute Dice loss
-    intersection = jnp.sum(one_hot_labels * probs, axis=-1)
-    union = jnp.sum(one_hot_labels, axis=-1) + jnp.sum(probs, axis=-1)
-    loss = 1 - (2 * intersection + epsilon) / (union + epsilon)
-
-    return loss.mean()
-
+    probs = jax.nn.softmax(logits, axis=-1)  # Convert logits to probabilities
+    labels_one_hot = jax.nn.one_hot(labels, num_classes)  # Convert labels to one-hot
+    
+    intersection = jnp.sum(probs * labels_one_hot, axis=(0, 1, 2))
+    union = jnp.sum(probs, axis=(0, 1, 2)) + jnp.sum(labels_one_hot, axis=(0, 1, 2))
+    
+    dice_per_class = (2. * intersection + epsilon) / (union + epsilon)
+    mean_dice_loss = 1. - jnp.mean(dice_per_class)
+    
+    return mean_dice_loss
 
 def get_loss_function(loss_fn: str) -> Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]:
     """
