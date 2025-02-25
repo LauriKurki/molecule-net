@@ -1,3 +1,4 @@
+import sys
 import os
 import io
 import re
@@ -15,9 +16,9 @@ def save_afms(
     save_dir: str,
 ):
     signature = {
-        "x": tf.TensorSpec(shape=(256, 256, 15), dtype=tf.float32),
+        "x": tf.TensorSpec(shape=(160, 160, 15), dtype=tf.uint8),
         "xyz": tf.TensorSpec(shape=(None, 5), dtype=tf.float32),
-        "sw": tf.TensorSpec(shape=(2, 3), dtype=tf.float32),
+        "sw": tf.TensorSpec(shape=(2, 3), dtype=tf.float64),
     }
 
     def generator():
@@ -137,71 +138,77 @@ def generator(dataloader):
 
 
 if __name__=='__main__':
+    local_scratch = sys.argv[1]
     # Read urls
     #directory = "/l/data/molnet/Water-bilayer"
-    directory = "/scratch/project_2005247/lauri/data/Water-bilayer"
-    outputdir = "/scratch/project_2005247/lauri/data/water-bilayer-temp"
-    save_dir  = "/scratch/project_2005247/lauri/data/water-bilayer-tf"
+    directory = "/scratch/project_2005247/lauri/data/SIN-AFM-FDBM"
+    temp_dir = os.path.join(
+        local_scratch,
+        "SIN-AFM-FDBM-temp"
+    )
+    save_dir  = "/scratch/project_2005247/lauri/data/SIN-AFM-FDBM-tf"
 
-    #urls = [
-    #    os.path.join(directory, f)
-    #    for f in os.listdir(directory)
-    #]
+    for split in ["train", "val", "test"]:
+        urls = [
+            os.path.join(directory, f)
+            for f in os.listdir(directory)
+            if split in f
+        ]
 
-    # Create dataset
-    #dataset = wds.WebDataset(urls).decode("l", decode_xyz)
-    #dl = iter(dataset)
+        # Create dataset
+        dataset = wds.WebDataset(urls).decode("pill", decode_xyz)
+        dl = iter(dataset)
 
-    # First save the images to individual temporary files for later use
-    #gen = generator(dl)
-    #os.makedirs(outputdir, exist_ok=True)
+        # First save the images to individual temporary files for later use
+        gen = generator(dl)
+        os.makedirs(temp_dir, exist_ok=True)
 
-    #for i, batch in tqdm.tqdm(enumerate(gen)):
-    #    np.savez(
-    #        os.path.join(outputdir, f"batch_{i}"),
-    #        *batch
-    #    )
+        for i, batch in tqdm.tqdm(enumerate(gen)):
+            np.savez(
+                os.path.join(temp_dir, f"{split}_batch_{i:06}"),
+                *batch
+            )
 
-    files = [
-        os.path.join(outputdir, f)
-        for f in os.listdir(outputdir)
-        if f.endswith(".npz")
-    ]
+        files = [
+            os.path.join(temp_dir, f)
+            for f in os.listdir(temp_dir)
+            if f.endswith(".npz")
+            and split in f
+        ]
 
-    files = sorted(files, key=lambda x: int(x.split("_")[-1].split(".")[0]))
+        files = sorted(files, key=lambda x: int(x.split("_")[-1].split(".")[0]))
 
-    chunk_size = 1024
+        chunk_size = 1024
 
-    # Repeat files so that len(files) is a multiple of chunk_size
-    n = len(files)
-    n_chunks = n // chunk_size
-    n_files = n_chunks * chunk_size
-    files = files * (n_chunks + 1)
-    files = files[:n_files]
+        # Repeat files so that len(files) is a multiple of chunk_size
+        n = len(files)
+        n_chunks = n // chunk_size
+        n_files = n_chunks * chunk_size
+        files = files + files[:n_files - n]
 
-    print(f"Saving {len(files)} files in chunks of {chunk_size}")
+        print(f"Saving {len(files)} files in chunks of {chunk_size} for split {split}")
 
-    # Divide files into chunks of size chunk_size
-    chunks = [
-        files[i:i + chunk_size]
-        for i in range(0, len(files), chunk_size)
-    ]
+        # Divide files into chunks of size chunk_size
+        chunks = [
+            files[i:i + chunk_size]
+            for i in range(0, len(files), chunk_size)
+        ]
 
-    print(f"Saving {len(chunks)} chunks")
-    print(f"First chunk: {chunks[0]}")
+        print(f"Saving {len(chunks)} chunks")
+        print(f"First chunk: {chunks[0]}")
 
-    # Save chunks
-    for chunk in tqdm.tqdm(chunks):
-        first_index = chunk[0].split("_")[-1].split(".")[0]
-        last_index = chunk[-1].split("_")[-1].split(".")[0]
-        save_name = f"afms_{first_index}_{last_index}"
-        save_afms(
-            chunk,
-            os.path.join(save_dir, save_name)
-        )
+        # Save chunks
+        for chunk in tqdm.tqdm(chunks):
+            first_index = chunk[0].split("_")[-1].split(".")[0]
+            last_index = chunk[-1].split("_")[-1].split(".")[0]
+            save_name = f"{split}_afms_{first_index}_{last_index}"
+            save_afms(
+                chunk,
+                os.path.join(save_dir, save_name)
+            )
 
     # Remove temporary files in outputdir
-    for f in files:
-        os.remove(f)
+    #for f in files:
+    #    os.remove(f)
 
     print("Done")
