@@ -60,7 +60,8 @@ def main(argv):
 
     config = FLAGS.config
 
-    if config.loss_fn == "cross_entropy":
+    # if the model is a segmentation model, use segmentation training
+    if config.loss_fn in ["cross_entropy", "focal_loss", "dice_loss"]:
         train_segmentation.train_and_evaluate(config, FLAGS.workdir)
     else:
         train.train_and_evaluate(config, FLAGS.workdir)
