@@ -141,12 +141,18 @@ if __name__=='__main__':
     local_scratch = sys.argv[1]
     # Read urls
     #directory = "/l/data/molnet/Water-bilayer"
-    directory = "/scratch/project_2005247/lauri/data/SIN-AFM-FDBM"
+    directory = os.path.join(
+        local_scratch,
+        "SIN-AFM-FDBM"
+    )
     temp_dir = os.path.join(
         local_scratch,
         "SIN-AFM-FDBM-temp"
     )
-    save_dir  = "/scratch/project_2005247/lauri/data/SIN-AFM-FDBM-tf"
+    save_dir = os.path.join(
+        local_scratch,
+        "SIN-AFM-FDBM-tf"
+    )
 
     for split in ["train", "val", "test"]:
         urls = [
