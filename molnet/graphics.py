@@ -392,7 +392,7 @@ def save_segmentation_predictions(
         print(f'target.shape: {target.shape}')
         print(f'pred.shape: {pred.shape}')
 
-        fig = plt.figure(figsize=(18, 6), layout='constrained')
+        fig = plt.figure(figsize=(6, 18), layout='constrained')
         subfigs = fig.subfigures(1, 3, wspace=0.07)
 
         for i, (grid, name) in enumerate(zip([inp, target, pred], ['input', 'target', 'pred'])):
