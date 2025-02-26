@@ -3,6 +3,7 @@ import os
 import io
 import re
 import tqdm
+import tqdm.contrib.concurrent
 
 import tensorflow as tf
 import numpy as np
@@ -13,6 +14,7 @@ from typing import Any, Dict, Tuple, List
 
 def save_afms(
     files: List[str],
+    split: str,
     save_dir: str,
 ):
     signature = {
@@ -20,6 +22,12 @@ def save_afms(
         "xyz": tf.TensorSpec(shape=(None, 5), dtype=tf.float32),
         "sw": tf.TensorSpec(shape=(2, 3), dtype=tf.float64),
     }
+    start_idx = int(files[0].split("_")[-1].split(".")[0])
+    end_idx = int(files[-1].split("_")[-1].split(".")[0])
+    save_name = os.path.join(
+        save_dir,        
+        f"{split}_afms_{start_idx}_{end_idx}"
+    )
 
     def generator():
         for f in files:
@@ -39,8 +47,8 @@ def save_afms(
         output_signature=signature
     )
 
-    os.makedirs(save_dir, exist_ok=True)
-    ds.save(save_dir)
+    os.makedirs(save_name, exist_ok=True)
+    ds.save(save_name)
 
 
 def decode_xyz(key: str, data: Any):
@@ -135,7 +143,9 @@ def batch_to_numpy(batch: Dict[str, Any]):
 def generator(dataloader):
     for sample in dataloader:
         yield batch_to_numpy(sample)
-
+        
+def _save_afm_wrapper(args):
+    save_afms(*args)
 
 if __name__=='__main__':
     local_scratch = sys.argv[1]
@@ -205,15 +215,30 @@ if __name__=='__main__':
         print(f"Saving {len(chunks)} chunks")
         print(f"First chunk: {chunks[0]}")
 
-        # Save chunks
-        for chunk in tqdm.tqdm(chunks):
-            first_index = chunk[0].split("_")[-1].split(".")[0]
-            last_index = chunk[-1].split("_")[-1].split(".")[0]
-            save_name = f"{split}_afms_{first_index}_{last_index}"
-            save_afms(
+        # Save chunks (in parallel)
+        args_list = [
+            (
                 chunk,
-                os.path.join(save_dir, save_name)
-            )
+                split,
+                save_dir
+            ) for chunk in chunks
+        ]
+        tqdm.contrib.concurrent.process_map(
+            _save_afm_wrapper,
+            args_list,
+            max_workers=20
+        )
+
+        # Save chunks (in serial)
+        #for chunk in tqdm.tqdm(chunks):
+        #    first_index = chunk[0].split("_")[-1].split(".")[0]
+        #    last_index = chunk[-1].split("_")[-1].split(".")[0]
+        #    save_name = f"{split}_afms_{first_index}_{last_index}"
+        #    save_afms(
+        #        chunk,
+        #        os.path.join(save_dir, save_name)
+        #    )
+
 
     # Remove temporary files in outputdir
     #for f in files:
