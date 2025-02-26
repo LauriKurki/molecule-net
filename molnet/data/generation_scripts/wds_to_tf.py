@@ -26,7 +26,7 @@ def save_afms(
     end_idx = int(files[-1].split("_")[-1].split(".")[0])
     save_name = os.path.join(
         save_dir,        
-        f"{split}_afms_{start_idx}_{end_idx}"
+        f"{split}_afms_{start_idx:06}_{end_idx+1:06}"
     )
 
     def generator():
@@ -150,40 +150,44 @@ def _save_afm_wrapper(args):
 if __name__=='__main__':
     local_scratch = sys.argv[1]
     # Read urls
-    #directory = "/l/data/molnet/Water-bilayer"
-    #directory = os.path.join(
-    #    local_scratch,
-    #    "SIN-AFM-FDBM"
-    #)
+    directory = os.path.join(
+        local_scratch,
+        "SIN-AFM-FDBM"
+    )
     temp_dir = os.path.join(
         local_scratch,
         "SIN-AFM-FDBM-np"
     )
+    os.makedirs(temp_dir, exist_ok=True)
     save_dir = os.path.join(
         local_scratch,
         "SIN-AFM-FDBM-tf"
     )
 
     for split in ["train", "val", "test"]:
-        #urls = [
-        #    os.path.join(directory, f)
-        #    for f in os.listdir(directory)
-        #    if split in f
-        #]
+        urls = [
+            os.path.join(directory, f)
+            for f in os.listdir(directory)
+            if split in f
+        ]
 
         # Create dataset
-        #dataset = wds.WebDataset(urls).decode("pill", decode_xyz)
-        #dl = iter(dataset)
+        dataset = wds.WebDataset(urls).decode("pill", decode_xyz)
+        gen = wds.WebLoader(
+            dataset,
+            batch_size=None,
+            shuffle=False,
+            collate_fn=batch_to_numpy,
+            num_workers=20,            
+        )
 
         # First save the images to individual temporary files for later use
-        #gen = generator(dl)
-        #os.makedirs(temp_dir, exist_ok=True)
-
-        #for i, batch in tqdm.tqdm(enumerate(gen)):
-        #    np.savez(
-        #        os.path.join(temp_dir, f"{split}_batch_{i:06}"),
-        #        *batch
-        #    )
+        for i, batch in tqdm.tqdm(enumerate(gen)):
+            # Save batch to npz
+            np.savez(
+                os.path.join(temp_dir, f"{split}_batch_{i:06}"),
+                *batch
+            )
 
         files = [
             os.path.join(temp_dir, f)
@@ -213,7 +217,7 @@ if __name__=='__main__':
         ]
 
         print(f"Saving {len(chunks)} chunks")
-        print(f"First chunk: {chunks[0]}")
+        #print(f"First chunk: {chunks[0]}")
 
         # Save chunks (in parallel)
         args_list = [
@@ -240,8 +244,8 @@ if __name__=='__main__':
         #    )
 
 
-    # Remove temporary files in outputdir
-    #for f in files:
-    #    os.remove(f)
+        # Remove temporary files in outputdir
+        for f in files:
+            os.remove(f)
 
     print("Done")
