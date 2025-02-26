@@ -141,13 +141,13 @@ if __name__=='__main__':
     local_scratch = sys.argv[1]
     # Read urls
     #directory = "/l/data/molnet/Water-bilayer"
-    directory = os.path.join(
-        local_scratch,
-        "SIN-AFM-FDBM"
-    )
+    #directory = os.path.join(
+    #    local_scratch,
+    #    "SIN-AFM-FDBM"
+    #)
     temp_dir = os.path.join(
         local_scratch,
-        "SIN-AFM-FDBM-temp"
+        "SIN-AFM-FDBM-np"
     )
     save_dir = os.path.join(
         local_scratch,
@@ -155,25 +155,25 @@ if __name__=='__main__':
     )
 
     for split in ["train", "val", "test"]:
-        urls = [
-            os.path.join(directory, f)
-            for f in os.listdir(directory)
-            if split in f
-        ]
+        #urls = [
+        #    os.path.join(directory, f)
+        #    for f in os.listdir(directory)
+        #    if split in f
+        #]
 
         # Create dataset
-        dataset = wds.WebDataset(urls).decode("pill", decode_xyz)
-        dl = iter(dataset)
+        #dataset = wds.WebDataset(urls).decode("pill", decode_xyz)
+        #dl = iter(dataset)
 
         # First save the images to individual temporary files for later use
-        gen = generator(dl)
-        os.makedirs(temp_dir, exist_ok=True)
+        #gen = generator(dl)
+        #os.makedirs(temp_dir, exist_ok=True)
 
-        for i, batch in tqdm.tqdm(enumerate(gen)):
-            np.savez(
-                os.path.join(temp_dir, f"{split}_batch_{i:06}"),
-                *batch
-            )
+        #for i, batch in tqdm.tqdm(enumerate(gen)):
+        #    np.savez(
+        #        os.path.join(temp_dir, f"{split}_batch_{i:06}"),
+        #        *batch
+        #    )
 
         files = [
             os.path.join(temp_dir, f)
@@ -188,10 +188,12 @@ if __name__=='__main__':
 
         # Repeat files so that len(files) is a multiple of chunk_size
         n = len(files)
-        n_chunks = n // chunk_size
-        n_files = n_chunks * chunk_size
-        files = files + files[:n_files - n]
 
+        r = n % chunk_size
+        m = chunk_size - r
+        if r != 0:
+            files = files + files[:m]
+        
         print(f"Saving {len(files)} files in chunks of {chunk_size} for split {split}")
 
         # Divide files into chunks of size chunk_size
