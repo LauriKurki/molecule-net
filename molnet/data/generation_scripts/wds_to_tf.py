@@ -156,7 +156,7 @@ if __name__=='__main__':
     )
     temp_dir = os.path.join(
         local_scratch,
-        "SIN-AFM-FDBM-np"
+        "SIN-AFM-FDBM-temp"
     )
     os.makedirs(temp_dir, exist_ok=True)
     save_dir = os.path.join(
@@ -164,7 +164,7 @@ if __name__=='__main__':
         "SIN-AFM-FDBM-tf"
     )
 
-    for split in ["train", "val", "test"]:
+    for split in ["val", "test"]:
         urls = [
             os.path.join(directory, f)
             for f in os.listdir(directory)
@@ -188,6 +188,7 @@ if __name__=='__main__':
                 os.path.join(temp_dir, f"{split}_batch_{i:06}"),
                 *batch
             )
+        del gen
 
         files = [
             os.path.join(temp_dir, f)
@@ -246,6 +247,9 @@ if __name__=='__main__':
 
         # Remove temporary files in outputdir
         for f in files:
-            os.remove(f)
+            if os.path.exists(f):
+                os.remove(f)
+            else:
+                print(f"cannot remove file {f}, doesn't exist")
 
     print("Done")
