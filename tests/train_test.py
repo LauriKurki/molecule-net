@@ -6,8 +6,8 @@ import os
 import jax
 import tensorflow as tf
 
-from configs.tests import unet_test, attention_test, water_test
-from molnet import train
+from configs.tests import unet_test, attention_test, water_test, segmentation_test
+from molnet import train, train_segmentation
 from configs import root_dirs
 
 from absl.testing import parameterized, absltest
@@ -16,7 +16,8 @@ from absl import logging
 ALL_CONFIGS = {
     #"unet": unet_test.get_config(),
     #"attention": attention_test.get_config(),
-    "water": water_test.get_config(),
+    #"water": water_test.get_config(),
+    "segmentation": segmentation_test.get_config()
 }
 
 class TrainTest(parameterized.TestCase):
@@ -47,7 +48,7 @@ class TrainTest(parameterized.TestCase):
         workdir = tempfile.mkdtemp()
 
         # Run the training
-        train.train_and_evaluate(config, workdir)
+        train_segmentation.train_and_evaluate(config, workdir)
 
 
 if __name__ == "__main__":

@@ -360,3 +360,56 @@ def plot_molecule(
     if ylim is not None:
         ax.set_ylim(*ylim)
     ax.set_aspect('equal')
+
+
+def save_segmentation_predictions(
+    inputs: jnp.ndarray,
+    targets: jnp.ndarray,
+    preds: jnp.ndarray,
+    outdir: str,
+    start_save_idx: int = 0,
+):
+    n_samples = inputs.shape[0]
+
+    for sample in range(n_samples):
+        inp = inputs[sample]
+        pred = preds[sample]
+        target = targets[sample]
+
+        n_heights = inp.shape[-2] # n_heights == nZ
+        n_classes = pred.shape[-1]
+
+        # Plot in 3 rows: input, target, prediction
+        # Shapes:
+        #  - input: [nX, nY, nZ, 1]
+        #  - pred: [nX, nY, nZ, num_classes]
+        #  - target: [nX, nY, nZ, 1]
+
+        # First, transform pred to [nX, nY, nZ, 1] by taking the argmax
+        pred = jnp.argmax(pred, axis=-1, keepdims=True)
+
+        print(f'inp.shape: {inp.shape}')
+        print(f'target.shape: {target.shape}')
+        print(f'pred.shape: {pred.shape}')
+
+        fig = plt.figure(figsize=(6, 18), layout='constrained')
+        subfigs = fig.subfigures(1, 3, wspace=0.07)
+
+        for i, (grid, name) in enumerate(zip([inp, target, pred], ['input', 'target', 'pred'])):
+            subfigs[i].suptitle(name)
+
+            axs = subfigs[i].subplots(n_heights, 1)
+            for height in range(n_heights):
+                if name == 'input':
+                    axs[height].imshow(grid[..., height, 0], cmap='gray', origin='lower')
+                elif name == 'target':
+                    axs[height].imshow(grid[..., height], cmap='tab10', origin='lower', vmin=0, vmax=n_classes)
+                elif name == 'pred':
+                    axs[height].imshow(grid[..., height, 0], cmap='tab10', origin='lower', vmin=0, vmax=n_classes)
+                axs[height].set_xticks([])
+                axs[height].set_yticks([])
+
+        save_index = start_save_idx + sample
+        plt.savefig(f'{outdir}/{save_index:02}_segmentation.png')
+        plt.close()
+        

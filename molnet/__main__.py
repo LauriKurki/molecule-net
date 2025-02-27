@@ -19,7 +19,7 @@ from ml_collections import config_flags
 import jax
 import tensorflow as tf
 
-from molnet import train
+from molnet import train, train_segmentation
 from configs import root_dirs
 
 FLAGS = flags.FLAGS
@@ -60,7 +60,11 @@ def main(argv):
 
     config = FLAGS.config
 
-    train.train_and_evaluate(config, FLAGS.workdir)
+    # if the model is a segmentation model, use segmentation training
+    if config.loss_fn in ["cross_entropy", "focal_loss", "dice_loss"]:
+        train_segmentation.train_and_evaluate(config, FLAGS.workdir)
+    else:
+        train.train_and_evaluate(config, FLAGS.workdir)
     
 if __name__ == "__main__":
     flags.mark_flags_as_required(['config', 'workdir'])
