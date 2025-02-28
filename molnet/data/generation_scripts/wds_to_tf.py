@@ -130,7 +130,7 @@ def batch_to_numpy(batch: Dict[str, Any]):
     xyz, sw = batch['xyz']
 
     # Keep only water hydrogen and oxygen atoms
-    xyz = xyz[xyz[:, 3] < 9]
+    #xyz = xyz[xyz[:, 3] < 9]
 
     # Add column to xyz for charge (index 3) value 0
     charge = np.zeros((xyz.shape[0], 1), dtype=np.float32)
@@ -164,7 +164,7 @@ if __name__=='__main__':
         "SIN-AFM-FDBM-tf"
     )
 
-    for split in ["val", "test"]:
+    for split in ["train", "val", "test"]:
         urls = [
             os.path.join(directory, f)
             for f in os.listdir(directory)
