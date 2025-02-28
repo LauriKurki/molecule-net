@@ -23,7 +23,7 @@ from clu import (
 
 from configs import root_dirs
 from molnet import utils, train_state, hooks, loss
-from molnet.data import input_pipeline_seg
+from molnet.data import input_pipeline_seg, input_pipeline_fdbm
 from molnet.models import create_model
 
 from typing import Any, Dict, Iterator, Tuple, Callable
@@ -209,7 +209,7 @@ def train_and_evaluate(
     writer.write_hparams(config.to_dict())
 
     # Set root dir
-    config.root_dir = root_dirs.get_root_dir(config.dataset)
+    #config.root_dir = root_dirs.get_root_dir(config.dataset)
 
     # Save config to workdir
     config_path = os.path.join(workdir, "config.yaml")
@@ -221,7 +221,10 @@ def train_and_evaluate(
     rng = jax.random.PRNGKey(config.rng_seed)
     #rng, data_rng = jax.random.split(rng)
     #datasets = input_pipeline.get_datasets(data_rng, config)
-    datasets = input_pipeline_seg.get_datasets(config)
+    if "FDBM" in config.dataset:
+        datasets = input_pipeline_fdbm.get_datasets(config)
+    else:
+        datasets = input_pipeline_seg.get_datasets(config)
     train_ds = datasets["train"]
 
     # Create model
