@@ -37,7 +37,7 @@ NUMBER_TO_COLOR = {
 }
 
 COLORS = ase.data.colors.jmol_colors
-SIZES = ase.data.vdw_radii.vdw_radii
+SIZES = ase.data.vdw_radii
 
 def save_predictions(
     inputs: jnp.ndarray,
