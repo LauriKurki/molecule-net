@@ -19,12 +19,12 @@ def get_config() -> ml_collections.ConfigDict:
     
     config.batch_size = 16
 
-    config.loss_fn = "mse"
+    config.loss_fn = "cross_entropy"
 
     config.model = attention_unet.get_model_config()
     config.model.model_name = "attention-unet"
     config.model.dtype = "bfloat16"
-    config.model.output_channels = 5
+    config.model.output_channels = 36
     config.model.encoder_channels = [2, 4, 8]
     config.model.decoder_channels = [8, 4, 2]
     config.model.attention_channels = [8, 8, 8]
