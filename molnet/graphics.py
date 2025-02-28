@@ -36,7 +36,7 @@ NUMBER_TO_COLOR = {
     35: 'brown'
 }
 
-COLORS = ase.data.colors.jmol_colors
+#COLORS = ase.data.colors.jmol_colors
 SIZES = ase.data.vdw_radii
 
 def save_predictions(
@@ -390,17 +390,13 @@ def save_segmentation_predictions(
         # First, transform pred to [nX, nY, nZ, 1] by taking the argmax
         pred = jnp.argmax(pred, axis=-1, keepdims=True)
 
-        print(f'inp.shape: {inp.shape}')
-        print(f'target.shape: {target.shape}')
-        print(f'pred.shape: {pred.shape}')
-
         fig = plt.figure(figsize=(6, 18), layout='constrained')
-        subfigs = fig.subfigures(1, 3, wspace=0.07)
+        subfigs = fig.subfigures(3, 1, wspace=0.07)
 
         for i, (grid, name) in enumerate(zip([inp, target, pred], ['input', 'target', 'pred'])):
             subfigs[i].suptitle(name)
 
-            axs = subfigs[i].subplots(n_heights, 1)
+            axs = subfigs[i].subplots(1, n_heights)
             for height in range(n_heights):
                 if name == 'input':
                     axs[height].imshow(grid[..., height, 0], cmap='gray', origin='lower')
