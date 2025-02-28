@@ -36,6 +36,8 @@ NUMBER_TO_COLOR = {
     35: 'brown'
 }
 
+COLORS = ase.data.colors.jmol_colors
+SIZES = ase.data.vdw_radii.vdw_radii
 
 def save_predictions(
     inputs: jnp.ndarray,
@@ -412,4 +414,3 @@ def save_segmentation_predictions(
         save_index = start_save_idx + sample
         plt.savefig(f'{outdir}/{save_index:02}_segmentation.png')
         plt.close()
-        
