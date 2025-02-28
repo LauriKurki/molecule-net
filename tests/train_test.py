@@ -6,7 +6,13 @@ import os
 import jax
 import tensorflow as tf
 
-from configs.tests import unet_test, attention_test, water_test, segmentation_test
+from configs.tests import (
+    unet_test,
+    attention_test,
+    water_test,
+    segmentation_test,
+    fdbm_test
+)
 from molnet import train, train_segmentation
 from configs import root_dirs
 
@@ -17,7 +23,8 @@ ALL_CONFIGS = {
     #"unet": unet_test.get_config(),
     #"attention": attention_test.get_config(),
     #"water": water_test.get_config(),
-    "segmentation": segmentation_test.get_config()
+    #"segmentation": segmentation_test.get_config()
+    "fdbm": fdbm_test.get_config()
 }
 
 class TrainTest(parameterized.TestCase):
@@ -42,7 +49,8 @@ class TrainTest(parameterized.TestCase):
 
         # Get the config
         config = ALL_CONFIGS[config_name]
-        config.root_dir = root_dirs.get_root_dir(config.dataset)
+        #config.root_dir = root_dirs.get_root_dir(config.dataset)
+        config.root_dir = "/u/79/kurkil1/unix/work/molnet/data/SIN-AFM-FDBM-tf"
 
         # Create a temporary directory to store the results
         workdir = tempfile.mkdtemp()
