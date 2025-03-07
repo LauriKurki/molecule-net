@@ -4,6 +4,7 @@ from skimage import feature
 
 import ase
 import ase.data
+import ase.data.colors
 from ase import io
 import matplotlib.pyplot as plt
 
@@ -36,7 +37,7 @@ NUMBER_TO_COLOR = {
     35: 'brown'
 }
 
-#COLORS = ase.data.colors.jmol_colors
+COLORS = ase.data.colors.jmol_colors
 SIZES = ase.data.vdw_radii
 
 def save_predictions(
