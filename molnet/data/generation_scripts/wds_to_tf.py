@@ -175,6 +175,7 @@ if __name__=='__main__':
             for f in os.listdir(directory)
             if split in f
         ]
+        print(f"split {split} -- len(urls): {len(urls)}")
 
         # Create dataset
         dataset = wds.WebDataset(urls).decode("pill", decode_xyz)
@@ -237,7 +238,7 @@ if __name__=='__main__':
         tqdm.contrib.concurrent.process_map(
             _save_afm_wrapper,
             args_list,
-            max_workers=16
+            max_workers=20
         )
 
         # Save chunks (in serial)

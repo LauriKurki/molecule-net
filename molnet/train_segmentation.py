@@ -209,7 +209,7 @@ def train_and_evaluate(
     writer.write_hparams(config.to_dict())
 
     # Set root dir
-    #config.root_dir = root_dirs.get_root_dir(config.dataset)
+    config.root_dir = root_dirs.get_root_dir(config.dataset)
 
     # Save config to workdir
     config_path = os.path.join(workdir, "config.yaml")
