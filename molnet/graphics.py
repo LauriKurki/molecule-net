@@ -390,7 +390,7 @@ def save_segmentation_predictions(
         # First, transform pred to [nX, nY, nZ, 1] by taking the argmax
         pred = jnp.argmax(pred, axis=-1, keepdims=True)
 
-        fig = plt.figure(figsize=(6, 18), layout='constrained')
+        fig = plt.figure(figsize=(18, 6), layout='constrained')
         subfigs = fig.subfigures(3, 1, wspace=0.07)
 
         for i, (grid, name) in enumerate(zip([inp, target, pred], ['input', 'target', 'pred'])):

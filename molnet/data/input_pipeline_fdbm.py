@@ -103,6 +103,13 @@ def get_datasets(
             deterministic=True,
         )
 
+        # Transform input and target together.
+        dataset_split = dataset_split.map(
+            transform_input_and_target,
+            num_parallel_calls=tf.data.AUTOTUNE,
+            deterministic=True,
+        )
+
         # Batch the dataset.
         dataset_split = dataset_split.batch(config.batch_size)
         dataset_split = dataset_split.prefetch(tf.data.AUTOTUNE).as_numpy_iterator()
@@ -141,7 +148,11 @@ def _preprocess_images(
 
     # Crop slices to z_cutoff.
     z_slices = z_cutoff / 0.1
-    x = x[..., -int(z_slices):]
+    #x = x[..., -int(z_slices):]
+
+    # Select "z_slices" consecutive slices from the stack starting at a random index.
+    z_start = tf.random.uniform((), minval=5, maxval=x.shape[-1] - int(z_slices), dtype=tf.int32)
+    x = x[..., z_start:z_start]]
 
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
@@ -198,6 +209,10 @@ def _compute_atom_maps(
     atom_map = tf.zeros_like(X)
 
     for atom in xyz:
+        # Skip atoms below cutoff range
+        if atom[2] < z_max - z_cutoff - 1.0:
+            continue
+
         # Skip padding atoms
         if atom[-1] == 0:
             break
