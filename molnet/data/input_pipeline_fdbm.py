@@ -40,7 +40,7 @@ def get_datasets(
         # Load the files.
         dataset_split = tf.data.Dataset.from_tensor_slices(files_split)
         # Shuffle the files.
-        dataset_split = dataset_split.shuffle(1000)
+        dataset_split = dataset_split.shuffle(100)
         dataset_split = dataset_split.interleave(
             lambda path: tf.data.Dataset.load(path, element_spec=element_spec),
             num_parallel_calls=tf.data.AUTOTUNE,
@@ -151,8 +151,8 @@ def _preprocess_images(
     #x = x[..., -int(z_slices):]
 
     # Select "z_slices" consecutive slices from the stack starting at a random index.
-    z_start = tf.random.uniform((), minval=5, maxval=x.shape[-1] - int(z_slices), dtype=tf.int32)
-    x = x[..., z_start:z_start]]
+    z_start = tf.random.uniform((), minval=5, maxval=x.shape[-1], dtype=tf.int32)
+    x = x[..., z_start:z_start+1]
 
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
