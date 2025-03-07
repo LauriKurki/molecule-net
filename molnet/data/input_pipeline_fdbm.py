@@ -151,8 +151,8 @@ def _preprocess_images(
     #x = x[..., -int(z_slices):]
 
     # Select "z_slices" consecutive slices from the stack starting at a random index.
-    z_start = tf.random.uniform((), minval=0, maxval=x.shape[-1] - int(z_slices), dtype=tf.int32)
-    x = x[..., z_start:z_start + int(z_slices)]
+    z_start = tf.random.uniform((), minval=5, maxval=x.shape[-1] - int(z_slices), dtype=tf.int32)
+    x = x[..., z_start:z_start]]
 
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
