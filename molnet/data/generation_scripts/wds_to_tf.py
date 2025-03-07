@@ -26,7 +26,7 @@ def save_afms(
     end_idx = int(files[-1].split("_")[-1].split(".")[0])
     save_name = os.path.join(
         save_dir,        
-        f"{split}_afms_{start_idx:06}_{end_idx+1:06}"
+        f"{split}_afms_{start_idx:07}_{end_idx+1:07}"
     )
 
     def generator():
@@ -130,7 +130,7 @@ def batch_to_numpy(batch: Dict[str, Any]):
     xyz, sw = batch['xyz']
 
     # Keep only water hydrogen and oxygen atoms
-    xyz = xyz[xyz[:, 3] < 9]
+    #xyz = xyz[xyz[:, 3] < 9]
 
     # Add column to xyz for charge (index 3) value 0
     charge = np.zeros((xyz.shape[0], 1), dtype=np.float32)
@@ -152,19 +152,24 @@ if __name__=='__main__':
     # Read urls
     directory = os.path.join(
         local_scratch,
-        "SIN-AFM-FDBM"
+        "SIN-STM-FDBM"
     )
     temp_dir = os.path.join(
         local_scratch,
-        "SIN-AFM-FDBM-temp"
+        "SIN-STM-FDBM-temp"
     )
     os.makedirs(temp_dir, exist_ok=True)
     save_dir = os.path.join(
         local_scratch,
-        "SIN-AFM-FDBM-tf"
+        "SIN-STM-FDBM-tf"
     )
+    counts = {
+        "train": 179993,
+        "val": 20000,
+        "test": 35554,
+    }
 
-    for split in ["val", "test"]:
+    for split in ["train", "val", "test"]:
         urls = [
             os.path.join(directory, f)
             for f in os.listdir(directory)
@@ -178,14 +183,15 @@ if __name__=='__main__':
             batch_size=None,
             shuffle=False,
             collate_fn=batch_to_numpy,
-            num_workers=20,            
+            num_workers=16,
+            prefetch_factor=4,
         )
 
         # First save the images to individual temporary files for later use
-        for i, batch in tqdm.tqdm(enumerate(gen)):
+        for i, batch in tqdm.tqdm(enumerate(gen), total=counts[split]):
             # Save batch to npz
             np.savez(
-                os.path.join(temp_dir, f"{split}_batch_{i:06}"),
+                os.path.join(temp_dir, f"{split}_batch_{i:07}"),
                 *batch
             )
         del gen
@@ -231,7 +237,7 @@ if __name__=='__main__':
         tqdm.contrib.concurrent.process_map(
             _save_afm_wrapper,
             args_list,
-            max_workers=20
+            max_workers=16
         )
 
         # Save chunks (in serial)
