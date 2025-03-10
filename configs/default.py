@@ -25,6 +25,9 @@ def get_config() -> ml_collections.ConfigDict:
 
     # Loss
     config.loss_fn = "mse"
+    config.loss_kwargs = ml_collections.ConfigDict()
+    config.loss_kwargs.dc_coef = 1.0
+    config.loss_kwargs.ce_coef = 1.0
 
     # Training
     config.num_train_steps = 1_000_000

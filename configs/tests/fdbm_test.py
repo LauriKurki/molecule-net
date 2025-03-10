@@ -18,8 +18,12 @@ def get_config() -> ml_collections.ConfigDict:
     config.predict_num_batches_at_end_of_training = 1
     
     config.batch_size = 16
+    config.interpolate_input_z = 10
 
-    config.loss_fn = "cross_entropy"
+    config.loss_fn = "dc_and_ce"
+    config.loss_kwargs = ml_collections.ConfigDict()
+    config.loss_kwargs.dc_coef = 1.0
+    config.loss_kwargs.ce_coef = 1.0
 
     config.model = attention_unet.get_model_config()
     config.model.model_name = "attention-unet"
