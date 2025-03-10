@@ -50,7 +50,7 @@ class TrainTest(parameterized.TestCase):
         # Get the config
         config = ALL_CONFIGS[config_name]
         #config.root_dir = root_dirs.get_root_dir(config.dataset)
-        config.root_dir = "/u/79/kurkil1/unix/work/molnet/data/SIN-AFM-FDBM-tf"
+        config.root_dir = "/u/79/kurkil1/unix/work/molnet/data/SIN-STM-FDBM-tf"
 
         # Create a temporary directory to store the results
         workdir = tempfile.mkdtemp()
