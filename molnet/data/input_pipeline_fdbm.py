@@ -147,7 +147,7 @@ def _preprocess_images(
     shifted_sw = sw - sw[0]
 
     # Crop slices to z_cutoff.
-    z_slices = z_cutoff / 0.1
+    z_slices = int(z_cutoff / 0.1)
     #x = x[..., -int(z_slices):]
 
     # Select "z_slices" consecutive slices from the stack starting at a random index.
@@ -165,7 +165,11 @@ def _preprocess_images(
         x = tf.image.resize(x, (x.shape[1], interpolate_z), method='bilinear')
 
     # Randomly shift the slices.
-    x = augmentation.random_slice_shift(x, max_shift_per_slice=max_shift_per_slice)
+    x = augmentation.random_slice_shift(
+        x,
+        max_shift_per_slice=max_shift_per_slice,
+        n_slices=10,
+    )
 
     # Rotate inputs tensor and coordinates.
     (
