@@ -250,16 +250,23 @@ def add_random_cutouts(images, cutout_probs, cutout_size_range, image_size=128):
     return tf.transpose(updated_images, perm=[1, 2, 0, 3])
 
 
-def random_slice_shift(x, max_shift_per_slice: float = 0.02, max_total_shift: float = 0.05):
+def random_slice_shift(
+    x,
+    max_shift_per_slice: float = 0.02,
+    max_total_shift: float = 0.05,
+    n_slices: int = 10
+):
     """
     Randomly and independently shift each slice of the 3D stack with respect to the previous slice.
 
     Args:
         x (tf.Tensor): A 4D tensor of shape (X, Y, Z, channels).
         max_shift_per_slice (float): The maximum fraction of image size to shift.
+        max_total_shift (float): The maximum total shift.
+        n_slices (int): Number of slices to shift.
     """
 
-    shifts = tf.random.uniform((x.shape[-2] - 1, 2), -max_shift_per_slice, max_shift_per_slice)
+    shifts = tf.random.uniform((n_slices - 1, 2), -max_shift_per_slice, max_shift_per_slice)
 
     # Translate into cumulative shift, first slice remains unchanged so we prepend a zero shift
     cumulative_shifts = tf.concat([[[0, 0]], tf.cumsum(shifts, axis=0)], axis=0)
@@ -280,7 +287,7 @@ def random_slice_shift(x, max_shift_per_slice: float = 0.02, max_total_shift: fl
         [
             tf.roll(
                 x[..., i, :], shift=pixel_shifts[i], axis=(0, 1)
-            ) for i in range(x.shape[-2])
+            ) for i in range(n_slices)
         ], axis=-2
     )
     return shifted_x
