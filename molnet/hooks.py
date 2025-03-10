@@ -128,7 +128,7 @@ class EvaluationHook:
         # Note best state seen so far.
         # Best state is defined as the state with the lowest validation loss.
         try:
-            min_val_loss = state.metrics_for_best_params["val_eval"]["total_loss"]
+            min_val_loss = state.metrics_for_best_params["val_eval"]["loss"]
         except (AttributeError, KeyError):
             logging.info("No best state found yet.")
             min_val_loss = float("inf")

@@ -32,6 +32,8 @@ from typing import Any, Dict, Iterator, Tuple, Callable
 @flax.struct.dataclass
 class Metrics(metrics.Collection):
     loss: metrics.Average.from_output("loss") # type: ignore
+    dc_loss: metrics.Average.from_output("dc_loss") # type: ignore
+    ce_loss: metrics.Average.from_output("ce_loss") # type: ignore
 
 
 def add_prefix_to_keys(result: Dict[str, Any], prefix: str) -> Dict[str, Any]:
