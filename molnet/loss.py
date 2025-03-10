@@ -103,8 +103,8 @@ def focal_loss(logits, labels, gamma=2.0, alpha=0.25):
     Computes the focal loss for multi-class semantic segmentation in 3D.
     
     Args:
-        logits: [D, H, W, num_classes] - Raw model outputs (logits).
-        labels: [D, H, W] - Integer class labels for each voxel.
+        logits: [batch, D, H, W, num_classes] - Raw model outputs (logits).
+        labels: [batch, D, H, W] - Integer class labels for each voxel.
         gamma: float - Focal loss gamma parameter.
         alpha: float - Focal loss alpha parameter.
         
@@ -113,7 +113,7 @@ def focal_loss(logits, labels, gamma=2.0, alpha=0.25):
     """
     num_classes = logits.shape[-1]
     logits = logits.reshape(-1, num_classes)  # Flatten to [N, num_classes]
-    labels = labels.flatten()                 # Flatten to [N]
+    labels = labels.flatten()                 # Flatten to [N, ]
 
     # Apply softmax for numerical stability
     probs = jax.nn.softmax(logits, axis=-1)
@@ -127,13 +127,13 @@ def focal_loss(logits, labels, gamma=2.0, alpha=0.25):
 
     return loss.mean()
 
-def dice_loss(logits, labels, epsilon=1e-6):
+def dice_loss(logits, labels, epsilon=1e-9):
     """
     Computes the Dice loss for multi-class semantic segmentation in 3D.
     
     Args:
-        logits: [D, H, W, num_classes] - Raw model outputs (logits).
-        labels: [D, H, W] - Integer class labels for each voxel.
+        logits: [batch, D, H, W, num_classes] - Raw model outputs (logits).
+        labels: [batch, D, H, W] - Integer class labels for each voxel.
         epsilon: float - Small constant to avoid division by zero.
         
     Returns:
@@ -143,36 +143,56 @@ def dice_loss(logits, labels, epsilon=1e-6):
     probs = jax.nn.softmax(logits, axis=-1)  # Convert logits to probabilities
     labels_one_hot = jax.nn.one_hot(labels, num_classes)  # Convert labels to one-hot
     
-    intersection = jnp.sum(probs * labels_one_hot, axis=(0, 1, 2))
-    union = jnp.sum(probs, axis=(0, 1, 2)) + jnp.sum(labels_one_hot, axis=(0, 1, 2))
-    
-    dice_per_class = (2. * intersection + epsilon) / (union + epsilon)
-    mean_dice_loss = 1. - jnp.mean(dice_per_class)
-    
-    return mean_dice_loss
+    # Compute true positive, false positive, and false negative
+    tp = jnp.sum(probs * labels_one_hot, axis=(0, 1, 2, 3))
+    fp = jnp.sum(probs * (1 - labels_one_hot), axis=(0, 1, 2, 3))
+    fn = jnp.sum((1 - probs) * labels_one_hot, axis=(0, 1, 2, 3))
 
-def get_loss_function(loss_fn: str) -> Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]:
+    # Compute Dice coefficient
+    nom = 2 * tp + epsilon
+    denom = 2 * tp + fp + fn + epsilon
+    dc = nom / jnp.clip(denom, epsilon, None)
+    dc = jnp.mean(dc)
+
+    return  1 - dc
+
+
+def get_loss_function(
+    loss_fn: str,
+    loss_kwargs: dict = None
+) -> Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]:
     """
     Get the loss function based on the name.
 
     Args:
-    - loss_fn `str`: loss function name
+        - loss_fn `str`: loss function name
+        - loss_kwargs `dict`: loss function keyword arguments
 
     Returns:
 
     `Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]`: loss function.
     """
-    if loss_fn.lower() == "mse":
+    loss_fn_name = loss_fn.lower()
+    dc_coef = loss_kwargs.get("dc_coef", 1.0)
+    ce_coef = loss_kwargs.get("ce_coef", 1.0)
+
+    if loss_fn_name == "mse":
         return mse
-    elif loss_fn.lower() == "mae":
+    elif loss_fn_name == "mae":
         return mae
-    elif loss_fn.lower() == "kl_divergence":
+    elif loss_fn_name == "kl_divergence":
         return kl_divergence
-    elif loss_fn.lower() == "cross_entropy":
+    elif loss_fn_name == "cross_entropy":
         return cross_entropy_loss
-    elif loss_fn.lower() == "focal_loss":
+    elif loss_fn_name == "focal_loss":
         return focal_loss
-    elif loss_fn.lower() == "dice_loss":
+    elif loss_fn_name == "dice_loss":
         return dice_loss
+    elif loss_fn_name == "dc_and_ce":
+        def dc_and_ce(logits, labels):
+            dc_loss = dice_loss(logits, labels)
+            ce_loss = cross_entropy_loss(logits, labels)
+            return dc_coef * dc_loss + ce_coef * ce_loss, (dc_loss, ce_loss)
+        return dc_and_ce
     else:
         raise ValueError(f"Loss function {loss_fn} not supported.")
