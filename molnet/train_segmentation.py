@@ -26,12 +26,14 @@ from molnet import utils, train_state, hooks, loss
 from molnet.data import input_pipeline_seg, input_pipeline_fdbm
 from molnet.models import create_model
 
-from typing import Any, Dict, Iterator, Tuple, Callable
+from typing import Any, Dict, Iterator, Tuple, Callable, Optional
 
 
 @flax.struct.dataclass
 class Metrics(metrics.Collection):
     loss: metrics.Average.from_output("loss") # type: ignore
+    dc_loss: metrics.Average.from_output("dc_loss") # type: ignore
+    ce_loss: metrics.Average.from_output("ce_loss") # type: ignore
 
 
 def add_prefix_to_keys(result: Dict[str, Any], prefix: str) -> Dict[str, Any]:
@@ -81,19 +83,27 @@ def train_step(
             training=True,
             mutable='batch_stats',
         )
-        batch_loss = loss_fn(
+        (
+            batch_loss,
+            (
+                dc_loss,
+                ce_loss
+            )
+        ) = loss_fn(
             preds,
             batch["atom_map"]
         )
 
-        return batch_loss, (preds, updates)
+        return batch_loss, (dc_loss, ce_loss, updates)
 
     # Compute loss and gradients
     grad_fn = jax.value_and_grad(loss_wrapper, has_aux=True)
-    (batch_loss, (_, updates)), grads = grad_fn(state.params)
+    (batch_loss, (dc_loss, ce_loss, updates)), grads = grad_fn(state.params)
 
     batch_metrics = Metrics.single_from_model_output(
         loss=batch_loss,
+        dc_loss=dc_loss,
+        ce_loss=ce_loss
     )
 
     # Update parameters
@@ -116,12 +126,14 @@ def eval_step(
         batch["images"],
         training=False
     )
-    batch_loss = loss_fn(
+    batch_loss, (dc_loss, ce_loss) = loss_fn(
         preds,
         batch["atom_map"]
     )
     return Metrics.single_from_model_output(
-        loss=batch_loss,        
+        loss=batch_loss,
+        dc_loss=dc_loss,
+        ce_loss=ce_loss
     )
 
 
@@ -162,10 +174,10 @@ def predict_step(
         inputs,
         training=False,
     )
-    batch_loss = loss_fn(
-        preds,
-        batch["atom_map"]
-    )
+    #batch_loss, (_, _) = loss_fn(
+    #    preds,
+    #    batch["atom_map"]
+    #)
     return inputs, targets, preds, xyzs
 
 
@@ -209,7 +221,7 @@ def train_and_evaluate(
     writer.write_hparams(config.to_dict())
 
     # Set root dir
-    config.root_dir = root_dirs.get_root_dir(config.dataset)
+    #config.root_dir = root_dirs.get_root_dir(config.dataset)
 
     # Save config to workdir
     config_path = os.path.join(workdir, "config.yaml")
@@ -242,7 +254,7 @@ def train_and_evaluate(
     # Create optimizer
     tx = utils.create_optimizer(config)
     # Create loss function
-    loss_fn = loss.get_loss_function(config.loss_fn)
+    loss_fn = loss.get_loss_function(config.loss_fn, config.loss_kwargs)
 
     # Create training state
     state = train_state.TrainState.create(
