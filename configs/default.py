@@ -6,6 +6,7 @@ def get_config() -> ml_collections.ConfigDict:
     config.debug = False
     config.root_dir = None
     config.dataset = "afms_rebias"
+    config.task = "regression"
 
     # Dataset
     config.rng_seed = 0
