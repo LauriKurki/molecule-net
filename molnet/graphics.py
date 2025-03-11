@@ -13,8 +13,9 @@ from typing import List
 INDEX_TO_ELEM = {
     0: 'H',
     1: 'C', 2: 'N', 3: 'O', 4: 'F',
-    5: 'Cl',
-    6: 'Br'}
+    5: 'Si', 6: 'P', 7: 'S', 8: 'Cl',
+    9: 'Br'
+}
 
 ELEM_TO_COLOR = {
     "H": 'white',
@@ -22,6 +23,9 @@ ELEM_TO_COLOR = {
     "N": 'blue',
     "O": 'red',
     "F": 'green',
+    "Si": 'purple',
+    "P": 'orange',
+    "S": 'yellow',
     "Cl": 'lime',
     "Br": 'brown'
 }
@@ -33,6 +37,9 @@ NUMBER_TO_COLOR = {
     7: 'blue',
     8: 'red',
     9: 'green',
+    14: 'purple',
+    15: 'orange',
+    16: 'yellow',
     17: 'lime',
     35: 'brown'
 }
