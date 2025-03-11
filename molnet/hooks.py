@@ -14,7 +14,7 @@ from clu import metric_writers, checkpoint, metrics
 import flax.jax_utils
 
 from molnet import train_state
-from molnet import train
+from molnet import train, train_segmentation
 from molnet import graphics
 
 @dataclass
@@ -77,7 +77,8 @@ def add_prefix_to_keys(result: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 @dataclass
 class LogTrainingMetricsHook:
     writer: metric_writers.SummaryWriter
-    prefix: str = "train"
+    prefix: str = "train",
+    task: str = "regression"
 
     def __call__(
         self,
@@ -95,7 +96,14 @@ class LogTrainingMetricsHook:
 
         self.writer.flush()
 
-        return train.Metrics.empty()
+        if self.task == "regression":
+            empty_metrics = train.Metrics.empty()
+        elif self.task == "segmentation":
+            empty_metrics = train_segmentation.Metrics.empty()
+        else:
+            raise ValueError(f"Task {self.task} not supported.")
+
+        return empty_metrics
 
 
 @dataclass
