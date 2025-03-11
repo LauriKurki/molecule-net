@@ -23,7 +23,7 @@ from clu import (
 
 from configs import root_dirs
 from molnet import utils, train_state, hooks, loss
-from molnet.data import input_pipeline_online, input_pipeline_water
+from molnet.data import input_pipeline_online, input_pipeline_water, input_pipeline_fdbm
 from molnet.models import create_model
 
 from typing import Any, Dict, Iterator, Tuple, Callable
@@ -32,8 +32,8 @@ from typing import Any, Dict, Iterator, Tuple, Callable
 @flax.struct.dataclass
 class Metrics(metrics.Collection):
     loss: metrics.Average.from_output("loss") # type: ignore
-    dc_loss: metrics.Average.from_output("dc_loss") # type: ignore
-    ce_loss: metrics.Average.from_output("ce_loss") # type: ignore
+    #dc_loss: metrics.Average.from_output("dc_loss") # type: ignore
+    #ce_loss: metrics.Average.from_output("ce_loss") # type: ignore
 
 
 def add_prefix_to_keys(result: Dict[str, Any], prefix: str) -> Dict[str, Any]:
@@ -209,7 +209,7 @@ def train_and_evaluate(
     writer.write_hparams(config.to_dict())
 
     # Set root dir
-    config.root_dir = root_dirs.get_root_dir(config.dataset)
+    #config.root_dir = root_dirs.get_root_dir(config.dataset)
 
     # Save config to workdir
     config_path = os.path.join(workdir, "config.yaml")
@@ -223,6 +223,8 @@ def train_and_evaluate(
     #datasets = input_pipeline.get_datasets(data_rng, config)
     if "water" in config.dataset:
         datasets = input_pipeline_water.get_datasets(config)
+    elif "FDBM" in config.dataset:
+        datasets = input_pipeline_fdbm.get_datasets(config)
     else:
         datasets = input_pipeline_online.get_datasets(config)
     train_ds = datasets["train"]
@@ -259,7 +261,7 @@ def train_and_evaluate(
     logging.info("Creating hooks.")
     
     # Logging
-    log_hook = hooks.LogTrainingMetricsHook(writer)
+    log_hook = hooks.LogTrainingMetricsHook(writer, task=config.task)
     train_metrics = Metrics.empty()
 
     # Checkpointing

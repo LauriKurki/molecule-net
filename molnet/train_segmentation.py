@@ -271,7 +271,7 @@ def train_and_evaluate(
     logging.info("Creating hooks.")
     
     # Logging
-    log_hook = hooks.LogTrainingMetricsHook(writer)
+    log_hook = hooks.LogTrainingMetricsHook(writer, task=config.task)
     train_metrics = Metrics.empty()
 
     # Checkpointing
