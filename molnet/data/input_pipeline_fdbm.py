@@ -82,14 +82,25 @@ def get_datasets(
             deterministic=True,
         )
 
-        dataset_split = dataset_split.map(
-            lambda x: _compute_atom_maps(
-                x,
-                z_cutoff=config.target_z_cutoff,
-            ),
-            num_parallel_calls=tf.data.AUTOTUNE,
-            deterministic=True
-        )
+        if config.task == "segmentation":
+            dataset_split = dataset_split.map(
+                lambda x: _compute_segmentation_atom_maps(
+                    x,
+                    z_cutoff=config.target_z_cutoff,
+                ),
+                num_parallel_calls=tf.data.AUTOTUNE,
+                deterministic=True
+            )
+        elif config.task == "regression":
+            dataset_split = dataset_split.map(
+                lambda x: _compute_regression_atom_maps(
+                    x,
+                    z_cutoff=config.target_z_cutoff,
+                    factor=config.gaussian_factor,
+                ),
+                num_parallel_calls=tf.data.AUTOTUNE,
+                deterministic=True
+            )
 
         # Pad the xyzs to the same length (54).
         dataset_split = dataset_split.map(
@@ -148,11 +159,11 @@ def _preprocess_images(
 
     # Crop slices to z_cutoff.
     z_slices = int(z_cutoff / 0.1)
-    #x = x[..., -int(z_slices):]
+    x = x[..., -z_slices:]
 
     # Select "z_slices" consecutive slices from the stack starting at a random index.
-    z_start = tf.random.uniform((), minval=5, maxval=x.shape[-1], dtype=tf.int32)
-    x = x[..., z_start:z_start+1]
+    #z_start = tf.random.uniform((), minval=5, maxval=x.shape[-1], dtype=tf.int32)
+    #x = x[..., z_start:z_start+1]
 
     # Normalize the images to zero mean and unit variance.
     x = augmentation.normalize_images(x)
@@ -192,7 +203,7 @@ def _preprocess_images(
     return sample
 
 
-def _compute_atom_maps(
+def _compute_segmentation_atom_maps(
     batch: Dict[str, tf.Tensor],
     z_cutoff: float = 1.0,
 ) -> tf.Tensor:
@@ -228,6 +239,76 @@ def _compute_atom_maps(
 
     # Cast atom map to int.
     atom_map = tf.cast(atom_map, tf.int32)
+
+    return {
+        "images": batch["images"],
+        "xyz": batch["xyz"],
+        "sw": batch["sw"],
+        "atom_map": atom_map,
+    }
+
+def _compute_regression_atom_maps(
+    batch: Dict[str, tf.Tensor],
+    z_cutoff: float = 1.0,
+    sigma: float = 0.2,
+    factor: float = 5.0,
+    dataset: str = None,
+) -> tf.Tensor:
+    """Computes atom maps."""
+    xres = batch["images"].shape[0]
+    xyz = batch["xyz"]
+    sw = batch["sw"]
+    z_max = tf.reduce_max(xyz[:, 2])
+
+    x = tf.linspace(sw[0,0], sw[1,0], xres)
+    y = tf.linspace(sw[0,1], sw[1,1], xres)
+    z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
+    z = tf.linspace(z_max+0.3, z_max-z_cutoff+0.3, z_steps)
+
+    X, Y, Z = tf.meshgrid(x, y, z, indexing='xy')
+
+    # Compute atom maps.
+    maps_h = tf.zeros_like(X)
+    maps_c = tf.zeros_like(X)
+    maps_n = tf.zeros_like(X)
+    maps_o = tf.zeros_like(X)
+    maps_f = tf.zeros_like(X)
+    maps_si = tf.zeros_like(X)
+    maps_p = tf.zeros_like(X)
+    maps_s = tf.zeros_like(X)
+    maps_cl = tf.zeros_like(X)
+    maps_br = tf.zeros_like(X)
+
+    for atom in xyz:
+        m = tf.exp(
+            -((X - atom[0])**2 + (Y - atom[1])**2 + (Z - atom[2])**2) / (2 * sigma**2)
+        )
+        
+        # all values below 1e-4 to 0
+        m = tf.where(m < 1e-2, tf.zeros_like(m), m*factor)
+
+        if atom[-1] == 1:
+            maps_h += m
+        elif atom[-1] == 6:
+            maps_c += m
+        elif atom[-1] == 7:
+            maps_n += m
+        elif atom[-1] == 8:
+            maps_o += m
+        elif atom[-1] == 9:
+            maps_f += m
+        elif atom[-1] == 14:
+            maps_si += m
+        elif atom[-1] == 15:
+            maps_p += m
+        elif atom[-1] == 16:
+            maps_s += m
+        elif atom[-1] == 17:
+            maps_cl += m
+        elif atom[-1] == 35:
+            maps_br += m
+
+    atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=-1)
 
     return {
         "images": batch["images"],
