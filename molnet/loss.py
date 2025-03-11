@@ -173,8 +173,6 @@ def get_loss_function(
     `Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray]`: loss function.
     """
     loss_fn_name = loss_fn.lower()
-    dc_coef = loss_kwargs.get("dc_coef", 1.0)
-    ce_coef = loss_kwargs.get("ce_coef", 1.0)
 
     if loss_fn_name == "mse":
         return mse
@@ -189,6 +187,9 @@ def get_loss_function(
     elif loss_fn_name == "dice_loss":
         return dice_loss
     elif loss_fn_name == "dc_and_ce":
+        dc_coef = loss_kwargs.get("dc_coef", 1.0)
+        ce_coef = loss_kwargs.get("ce_coef", 1.0)
+        
         def dc_and_ce(logits, labels):
             dc_loss = dice_loss(logits, labels)
             ce_loss = cross_entropy_loss(logits, labels)
