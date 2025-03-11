@@ -11,7 +11,8 @@ from configs.tests import (
     attention_test,
     water_test,
     segmentation_test,
-    fdbm_test
+    fdbm_test,
+    fdbm_regression_test
 )
 from molnet import train, train_segmentation
 from configs import root_dirs
@@ -24,7 +25,8 @@ ALL_CONFIGS = {
     #"attention": attention_test.get_config(),
     #"water": water_test.get_config(),
     #"segmentation": segmentation_test.get_config()
-    "fdbm": fdbm_test.get_config()
+    #"fdbm": fdbm_test.get_config()
+    "fdbm_reg": fdbm_regression_test.get_config()
 }
 
 class TrainTest(parameterized.TestCase):
@@ -56,7 +58,8 @@ class TrainTest(parameterized.TestCase):
         workdir = tempfile.mkdtemp()
 
         # Run the training
-        train_segmentation.train_and_evaluate(config, workdir)
+        #train_segmentation.train_and_evaluate(config, workdir)
+        train.train_and_evaluate(config, workdir)
 
 
 if __name__ == "__main__":
