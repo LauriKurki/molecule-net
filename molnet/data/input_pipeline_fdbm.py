@@ -179,7 +179,7 @@ def _preprocess_images(
     x = augmentation.random_slice_shift(
         x,
         max_shift_per_slice=max_shift_per_slice,
-        n_slices=10,
+        n_slices=z_slices,
     )
 
     # Rotate inputs tensor and coordinates.
@@ -263,7 +263,7 @@ def _compute_regression_atom_maps(
     x = tf.linspace(sw[0,0], sw[1,0], xres)
     y = tf.linspace(sw[0,1], sw[1,1], xres)
     z_steps = tf.cast(z_cutoff / 0.1, tf.int32)
-    z = tf.linspace(z_max+0.3, z_max-z_cutoff+0.3, z_steps)
+    z = tf.linspace(z_max, z_max-z_cutoff, z_steps)
 
     X, Y, Z = tf.meshgrid(x, y, z, indexing='xy')
 
@@ -309,6 +309,7 @@ def _compute_regression_atom_maps(
             maps_br += m
 
     atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=-1)
+    atom_map = tf.reduce_sum(atom_map, axis=-1, keepdims=True)
 
     return {
         "images": batch["images"],
