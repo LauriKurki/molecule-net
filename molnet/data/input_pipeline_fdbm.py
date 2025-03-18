@@ -68,6 +68,12 @@ def get_datasets(
             deterministic=True,
         )
 
+        # Filter out all molecules that contain atoms
+        # larger than F, i.e. only include [H, C, N, O, F].
+        dataset_split = dataset_split.filter(
+            lambda x: tf.reduce_all(tf.less_equal(x["xyz"][:, -1], 9))
+        )
+
         # Preprocess images.
         dataset_split = dataset_split.map(
             lambda x: _preprocess_images(
