@@ -294,7 +294,8 @@ def _compute_regression_atom_maps(
         m = tf.where(m < 1e-2, tf.zeros_like(m), m*factor)
 
         if atom[-1] == 1:
-            maps_h += m
+            #maps_h += m
+            maps_h = tf.zeros_like(m)
         elif atom[-1] == 6:
             maps_c += m
         elif atom[-1] == 7:
@@ -314,8 +315,10 @@ def _compute_regression_atom_maps(
         elif atom[-1] == 35:
             maps_br += m
 
-    atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=-1)
-    atom_map = tf.reduce_sum(atom_map, axis=-1, keepdims=True)
+    #atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f, maps_si, maps_p, maps_s, maps_cl, maps_br], axis=-1)
+    #atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=-1)
+    atom_map = tf.stack([maps_h, maps_c, maps_n, maps_o, maps_f], axis=-1)
+    #atom_map = tf.reduce_sum(atom_map, axis=-1, keepdims=True)
 
     return {
         "images": batch["images"],

@@ -20,7 +20,7 @@ def get_activation(activation: str) -> Callable[[jnp.ndarray], jnp.ndarray]:
     elif activation.lower() == "tanh":
         return nn.tanh
     elif activation.lower() == "leaky_relu":
-        return nn.leaky_relu
+        return lambda x: nn.leaky_relu(x, negative_slope=0.01)
     elif activation.lower() == "gelu":
         return nn.gelu
     elif activation.lower() == "softmax":
